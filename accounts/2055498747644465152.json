@@ -1,0 +1,20 @@
+{
+  "$schema": "../schema/account.schema.json",
+  "id": "2055498747644465152",
+  "username": "trendtech33566",
+  "display_name": "GitHub AI Projects Community 🇯🇵",
+  "categories": [
+    "ai-hype",
+    "engagement-farming"
+  ],
+  "severity": "medium",
+  "evidence": [
+    {
+      "url": "https://x.com/trendtech33566/status/2090205346723996043"
+    }
+  ],
+  "note": "海外のバズったgithubrepoを紹介してインプ稼ぎ",
+  "status": "listed",
+  "added_at": "2026-08-20",
+  "updated_at": "2026-08-20"
+}

@@ -41,6 +41,29 @@ jobs:
           fi
           cat convert.log
 
+      - name: Issue のタイトルを付ける
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          OK: ${{ steps.convert.outputs.ok }}
+          LABEL: ${{ steps.convert.outputs.label }}
+          ACC_ID: ${{ steps.convert.outputs.id }}
+          ACC_USERNAME: ${{ steps.convert.outputs.username }}
+        run: |
+          set -euo pipefail
+          # 失敗した報告も一覧で見分けられるように、分かっている分だけ出す
+          if [ "$OK" = "true" ]; then
+            want="[report] @${ACC_USERNAME} (id=${ACC_ID})"
+          elif [ -n "$LABEL" ]; then
+            want="[report] ${LABEL}（検証エラー）"
+          else
+            want="[report] （検証エラー）"
+          fi
+          if [ "$ISSUE_TITLE" != "$want" ]; then
+            gh issue edit "$ISSUE_NUMBER" --title "$want"
+          fi
+
       - name: 失敗理由を Issue にコメント
         if: steps.convert.outputs.ok == 'false'
         env:
@@ -59,21 +82,6 @@ jobs:
           } > comment.md
           gh issue comment "$ISSUE_NUMBER" --body-file comment.md
           exit 1
-
-      - name: Issue のタイトルを付ける
-        if: steps.convert.outputs.ok == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ACC_ID: ${{ steps.convert.outputs.id }}
-          ACC_USERNAME: ${{ steps.convert.outputs.username }}
-        run: |
-          set -euo pipefail
-          want="[report] @${ACC_USERNAME} (id=${ACC_ID})"
-          if [ "$ISSUE_TITLE" != "$want" ]; then
-            gh issue edit "$ISSUE_NUMBER" --title "$want"
-          fi
 
       - name: PR を作成 / 更新
         if: steps.convert.outputs.ok == 'true'

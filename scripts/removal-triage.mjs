@@ -57,16 +57,9 @@ function findAccount(accounts, target) {
 }
 
 /** どのエントリの話かをワークフローに渡す（Issue タイトルに使う） */
-function emitOutputs(account) {
+function emitOutputs(lines) {
   if (!process.env.GITHUB_OUTPUT) return;
-  appendFileSync(
-    process.env.GITHUB_OUTPUT,
-    [
-      `found=${account ? "true" : "false"}`,
-      `id=${account?.id ?? ""}`,
-      `username=${account?.username ?? ""}`,
-    ].join("\n") + "\n",
-  );
+  appendFileSync(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
 }
 
 async function main() {
@@ -89,9 +82,18 @@ async function main() {
     return console.log(out.join("\n"));
   }
 
+  // 掲載が見つからなくても、申請対象だけはタイトルに出したい
+  emitOutputs([
+    `label=${target.kind === "handle" ? "@" : ""}${target.value}`,
+  ]);
+
   const accounts = await loadAccounts();
   const account = findAccount(accounts, target);
-  emitOutputs(account);
+  emitOutputs([
+    `found=${account ? "true" : "false"}`,
+    `id=${account?.id ?? ""}`,
+    `username=${account?.username ?? ""}`,
+  ]);
 
   if (!account) {
     say(`\`${rawAccount}\` に該当するエントリは **見つかりませんでした**。`);

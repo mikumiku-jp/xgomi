@@ -40,16 +40,24 @@ jobs:
         run: node scripts/removal-triage.mjs > triage.md
 
       - name: Issue のタイトルを付ける
-        if: steps.triage.outputs.found == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
+          FOUND: ${{ steps.triage.outputs.found }}
+          LABEL: ${{ steps.triage.outputs.label }}
           ACC_ID: ${{ steps.triage.outputs.id }}
           ACC_USERNAME: ${{ steps.triage.outputs.username }}
         run: |
           set -euo pipefail
-          want="[removal] @${ACC_USERNAME} (id=${ACC_ID})"
+          # 掲載が見つからなかった申請も一覧で見分けられるようにする
+          if [ "$FOUND" = "true" ]; then
+            want="[removal] @${ACC_USERNAME} (id=${ACC_ID})"
+          elif [ -n "$LABEL" ]; then
+            want="[removal] ${LABEL}（該当なし）"
+          else
+            want="[removal] （対象不明）"
+          fi
           if [ "$ISSUE_TITLE" != "$want" ]; then
             gh issue edit "$ISSUE_NUMBER" --title "$want"
           fi

@@ -5,6 +5,7 @@
 //
 // 成功時: accounts/<id>.json を書き出し、GITHUB_OUTPUT に id/username/created を出力
 // 失敗時: 標準エラーに理由を出して exit 1（呼び出し元が Issue にコメントする）
+// どちらでも label を出力する（呼び出し元が Issue タイトルに使う）
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -28,6 +29,11 @@ const ACCOUNTS_DIR = path.join(ROOT, "accounts");
 const fail = (msg) => {
   console.error(msg);
   process.exit(1);
+};
+
+const emitOutput = (lines) => {
+  if (!process.env.GITHUB_OUTPUT) return;
+  appendFileSync(process.env.GITHUB_OUTPUT, lines.join("\n") + "\n");
 };
 
 /**
@@ -117,6 +123,11 @@ async function main() {
       `対象アカウントを解釈できませんでした: \`${rawAccount}\`\n${target.reason}\n\n\`@username\` または \`https://x.com/username\` の形式で記入してください。`,
     );
   }
+
+  // この先で失敗しても、どのアカウントの報告かはタイトルに出したい
+  emitOutput([
+    `label=${target.kind === "handle" ? "@" : ""}${target.value}`,
+  ]);
 
   // --- カテゴリ ---
   const categories = (s["カテゴリ"] ?? "")
@@ -270,18 +281,13 @@ async function main() {
   ];
   console.log(summary.join(" "));
 
-  if (process.env.GITHUB_OUTPUT) {
-    appendFileSync(
-      process.env.GITHUB_OUTPUT,
-      [
-        `id=${user.id}`,
-        `username=${user.username}`,
-        `is_new=${isNew}`,
-        `evidence_count=${mergedEvidence.length}`,
-        `file=accounts/${user.id}.json`,
-      ].join("\n") + "\n",
-    );
-  }
+  emitOutput([
+    `id=${user.id}`,
+    `username=${user.username}`,
+    `is_new=${isNew}`,
+    `evidence_count=${mergedEvidence.length}`,
+    `file=accounts/${user.id}.json`,
+  ]);
 }
 
 await main();

@@ -62,7 +62,7 @@ body:
       label: 証拠ツイートURL
       description: |
         1行に1件。**対象アカウント本人の投稿** にかぎります。
-        `scam` `fake-demo` `impersonation` 以外は反復が要件なので、2件以上を推奨します。
+        1件でも受け付けますが、2件以上あるとレビューが早く済みます。
       placeholder: |
         https://x.com/example/status/1234567890123456789
         https://x.com/example/status/9876543210987654321

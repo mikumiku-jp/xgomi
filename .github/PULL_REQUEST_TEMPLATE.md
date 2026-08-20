@@ -20,7 +20,7 @@ https://github.com/mikumiku-jp/xgomi/issues/new?template=1-report.yml
 - [ ] ファイル名が数値IDと一致している
 - [ ] 証拠ツイートは対象アカウント本人の投稿である
 - [ ] [POLICY.md](../blob/main/POLICY.md) のカテゴリ定義に該当する
-- [ ] 常習性の要件を満たす（`ai-hype` / `ai-slop` / `engagement-farming` の場合）
+- [ ] 単発の言い間違い・勘違いを咎めるものになっていない
 - [ ] 個人情報・人格攻撃を含んでいない
 - [ ] 私怨・意見の不一致による報告ではない
 - [ ] `dist/` を編集していない（自動生成されます）

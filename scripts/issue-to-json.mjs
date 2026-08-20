@@ -198,7 +198,7 @@ async function main() {
   }
 
   // 投稿を消されても検証できるよう、この時点で魚拓を押さえておく。
-  // 失敗しても報告自体は通す（後で archive ワークフローが拾う）
+  // 失敗しても報告自体は通す（魚拓は必須ではない）
   const evidence = [];
   for (const url of verified) {
     const archived = await archiveUrl(url);

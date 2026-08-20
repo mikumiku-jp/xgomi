@@ -26,10 +26,6 @@ export const CATEGORIES = [
   "misinformation",
 ];
 
-// 実害が大きく、単発でも掲載対象になり得るもの。
-// これ以外は「反復していること」が要件。
-export const ONE_OFF_CATEGORIES = ["scam", "fake-demo", "impersonation"];
-
 export const STATUSES = [
   "listed",
   "username-changed",
@@ -238,15 +234,9 @@ export function validateAccount(data, { filename } = {}) {
   }
 
   // --- warnings ---
+  // 件数は要件ではない。レビューが楽になるというだけ。
   if (Array.isArray(data.evidence) && data.evidence.length === 1) {
-    const needsPattern = (
-      Array.isArray(data.categories) ? data.categories : []
-    ).filter((c) => CATEGORIES.includes(c) && !ONE_OFF_CATEGORIES.includes(c));
-    warnings.push(
-      needsPattern.length > 0
-        ? `証拠が1件のみです。${needsPattern.join(" / ")} は反復していることが要件なので、2件以上を強く推奨します。`
-        : "証拠が1件のみです。2件以上あると判断が容易になります。",
-    );
+    warnings.push("証拠が1件のみです。2件以上あると判断が容易になります。");
   }
   if (
     Array.isArray(data.evidence) &&

@@ -132,7 +132,7 @@ jobs:
             echo "### レビュー時の確認事項"
             echo
             echo "- [ ] カテゴリが [POLICY.md](../blob/main/POLICY.md) の定義に実際に該当するか"
-            echo "- [ ] 反復していると言えるか（\`scam\` \`fake-demo\` \`impersonation\` 以外は反復が要件）"
+            echo "- [ ] 単発の言い間違い・勘違いを咎めるものになっていないか"
             echo "- [ ] 私怨・意見の不一致による報告ではないか"
             echo "- [ ] 個人情報・人格攻撃が含まれていないか"
           } > pr-body.md

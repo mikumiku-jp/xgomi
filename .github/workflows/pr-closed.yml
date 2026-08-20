@@ -1,0 +1,63 @@
+name: pr-closed
+
+# 自動生成した PR が決着したら、元になった Issue を閉じる。
+#
+# マージ時は PR 本文の "Closes #N" で GitHub が閉じてくれるが、
+# 却下（マージせず close）したときは誰も閉じないため、報告が open のまま溜まる。
+# どちらの決着でも、報告者に結果が伝わる形で閉じる。
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  close-issue:
+    # ブランチ名に元の Issue 番号が入っている（report/issue-12, delist/issue-34）
+    if: >-
+      startsWith(github.event.pull_request.head.ref, 'report/issue-') ||
+      startsWith(github.event.pull_request.head.ref, 'delist/issue-')
+    runs-on: ubuntu-latest
+    steps:
+      - name: 元の Issue を閉じる
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          MERGED: ${{ github.event.pull_request.merged }}
+        run: |
+          set -euo pipefail
+          issue="${BRANCH##*issue-}"
+          case "$issue" in
+            ''|*[!0-9]*)
+              echo "ブランチ名から Issue 番号を取れません: ${BRANCH}"
+              exit 0
+              ;;
+          esac
+
+          kind="${BRANCH%%/*}"
+          if [ "$MERGED" = "true" ]; then
+            if [ "$kind" = "delist" ]; then
+              body="#${PR_NUMBER} がマージされ、掲載を解除しました。ご指摘ありがとうございます。"
+            else
+              body="#${PR_NUMBER} がマージされ、掲載されました。報告ありがとうございます。"
+            fi
+            reason="completed"
+          else
+            body="$(printf '%s\n\n%s' \
+              "#${PR_NUMBER} は取り下げられました。今回は掲載を見送ります。" \
+              "判断の理由は同PRのコメントを参照してください。掲載基準は [POLICY.md](../blob/main/POLICY.md) にあります。新しい材料があれば、あらためて報告してください。")"
+            reason="not planned"
+          fi
+
+          # マージ時は "Closes #N" で既に閉じていることがある。
+          # その場合も結果は伝えたいので、コメントは必ず残す。
+          gh issue comment "$issue" --body "$body"
+          if [ "$(gh issue view "$issue" --json state --jq .state)" = "OPEN" ]; then
+            gh issue close "$issue" --reason "$reason"
+          else
+            echo "Issue #${issue} は既に閉じています。"
+          fi

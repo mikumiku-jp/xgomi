@@ -18,7 +18,6 @@ import {
 import {
   validateAccount,
   CATEGORIES,
-  ONE_OFF_CATEGORIES,
   STATUSES,
   SEVERITIES,
 } from "./lib/validate-core.mjs";
@@ -76,7 +75,7 @@ check(
   ),
 );
 
-// カテゴリは4か所に書かれている。どれか一つだけ追加して気づかない、を止める。
+// カテゴリは5か所に書かれている。どれか一つだけ追加して気づかない、を止める。
 // （報告フォームにないカテゴリは誰も選べないし、
 // 　POLICY.md に定義がないカテゴリは掲載の根拠にならない）
 const sorted = (a) => [...a].sort();
@@ -91,7 +90,11 @@ const formCategories = (
   .trim()
   .split("\n")
   .map((l) => l.replace(/^\s*-\s*/, ""));
-eq("報告フォームのカテゴリ一覧が一致", sorted(formCategories), sorted(CATEGORIES));
+eq(
+  "報告フォームのカテゴリ一覧が一致",
+  sorted(formCategories),
+  sorted(CATEGORIES),
+);
 
 const policy = await readFile(path.join(ROOT, "POLICY.md"), "utf8");
 const policyCategories = [...policy.matchAll(/^\| `([a-z-]+)` \|/gm)].map(
@@ -103,10 +106,15 @@ eq(
   sorted(CATEGORIES),
 );
 
-check(
-  "単発でも掲載可なカテゴリは実在する",
-  ONE_OFF_CATEGORIES.every((c) => CATEGORIES.includes(c)),
-  `不明: ${ONE_OFF_CATEGORIES.filter((c) => !CATEGORIES.includes(c)).join(", ")}`,
+const readme = await readFile(path.join(ROOT, "README.md"), "utf8");
+const readmeSection = readme.match(/\n## カテゴリ\n([\s\S]*?)\n## /)?.[1] ?? "";
+const readmeCategories = [
+  ...new Set([...readmeSection.matchAll(/`([a-z][a-z-]+)`/g)].map((m) => m[1])),
+];
+eq(
+  "README.md のカテゴリ表が一致",
+  sorted(readmeCategories),
+  sorted(CATEGORIES),
 );
 
 // --------------------------------------------------------------------------
@@ -273,7 +281,9 @@ eq("未記入は空文字", renderedForm["補足"], "");
 // 本文の途中に出てくるコードブロックまで壊さない
 eq(
   "項目全体を包んでいないコードブロックには触らない",
-  parseIssueForm("### 補足\n\n以下のように主張していました:\n\n```\n嘘\n```")["補足"],
+  parseIssueForm("### 補足\n\n以下のように主張していました:\n\n```\n嘘\n```")[
+    "補足"
+  ],
   "以下のように主張していました:\n\n```\n嘘\n```",
 );
 

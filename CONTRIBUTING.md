@@ -87,7 +87,7 @@ git push origin add/example
 形式チェックは CI が済ませているので、レビューは中身に集中します。
 
 - カテゴリが [POLICY.md](POLICY.md) の定義に **実際に** 該当するか
-- 常習性の要件を満たすか（`ai-hype` / `ai-slop` / `engagement-farming` / `info-product`）
+- 単発の言い間違い・勘違いを咎めるものになっていないか
 - 私怨・意見の不一致による報告になっていないか
 - 個人情報・人格攻撃が含まれていないか
 

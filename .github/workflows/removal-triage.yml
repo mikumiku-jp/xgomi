@@ -17,7 +17,10 @@ concurrency:
 
 jobs:
   triage:
-    if: contains(github.event.issue.labels.*.name, 'removal')
+    # 自分でタイトルを書き換えた分の edited イベントで再実行しない
+    if: >-
+      contains(github.event.issue.labels.*.name, 'removal') &&
+      github.event.sender.login != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,10 +33,26 @@ jobs:
           node-version: "22"
 
       - name: 下調べ
+        id: triage
         env:
           # 環境変数経由で渡すことでシェルインジェクションを防ぐ
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node scripts/removal-triage.mjs > triage.md
+
+      - name: Issue のタイトルを付ける
+        if: steps.triage.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ACC_ID: ${{ steps.triage.outputs.id }}
+          ACC_USERNAME: ${{ steps.triage.outputs.username }}
+        run: |
+          set -euo pipefail
+          want="[removal] @${ACC_USERNAME} (id=${ACC_ID})"
+          if [ "$ISSUE_TITLE" != "$want" ]; then
+            gh issue edit "$ISSUE_NUMBER" --title "$want"
+          fi
 
       - name: 結果を Issue にコメント
         env:

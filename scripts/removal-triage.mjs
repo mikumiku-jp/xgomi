@@ -9,6 +9,7 @@
 //   - 証拠の投稿者が本当にそのIDか（人違いの検出）
 
 import { readFile, readdir } from "node:fs/promises";
+import { appendFileSync } from "node:fs";
 import path from "node:path";
 import {
   tweetById,
@@ -55,6 +56,19 @@ function findAccount(accounts, target) {
   );
 }
 
+/** どのエントリの話かをワークフローに渡す（Issue タイトルに使う） */
+function emitOutputs(account) {
+  if (!process.env.GITHUB_OUTPUT) return;
+  appendFileSync(
+    process.env.GITHUB_OUTPUT,
+    [
+      `found=${account ? "true" : "false"}`,
+      `id=${account?.id ?? ""}`,
+      `username=${account?.username ?? ""}`,
+    ].join("\n") + "\n",
+  );
+}
+
 async function main() {
   const body = process.env.ISSUE_BODY ?? (await readFile(0, "utf8"));
   const s = parseIssueForm(body);
@@ -77,6 +91,7 @@ async function main() {
 
   const accounts = await loadAccounts();
   const account = findAccount(accounts, target);
+  emitOutputs(account);
 
   if (!account) {
     say(`\`${rawAccount}\` に該当するエントリは **見つかりませんでした**。`);

@@ -31,17 +31,21 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          files=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" -- 'accounts/*.json' | tr '\n' ' ')
+          files=$(git diff --name-only --diff-filter=ACMR "$BASE_SHA...$HEAD_SHA" -- 'accounts/*.json' | tr '\n' ' ')
           echo "変更されたエントリ: ${files:-なし}"
           echo "files=$files" >> "$GITHUB_OUTPUT"
 
+      # 比較はドット3つ（分岐点との差分）で行う。ドット2つだと単純比較になり、
+      # PRが開いている間に main が進んだだけで「向こうにあってこちらにない」変更が
+      # 差分として出る。dist/ はボットが何度も更新するので、報告者が触っていなくても
+      # 「dist/ を手で編集しないでください」で落ちる。
       - name: dist/ の手編集を拒否
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -q '^dist/'; then
+          if git diff --name-only "$BASE_SHA...$HEAD_SHA" | grep -q '^dist/'; then
             echo "::error::dist/ は accounts/ から自動生成されます。手で編集しないでください。"
             exit 1
           fi

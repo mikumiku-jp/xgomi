@@ -10,6 +10,7 @@ export const CATEGORIES = [
   "plagiarism",
   "engagement-farming",
   "undisclosed-promo",
+  "info-product",
   "scam",
 ];
 
@@ -32,6 +33,7 @@ const ALLOWED_KEYS = new Set([
   "evidence",
   "note",
   "status",
+  "delisted_reason",
   "username_history",
   "refs",
   "added_at",
@@ -128,12 +130,19 @@ export function validateAccount(data, { filename } = {}) {
         return;
       }
       for (const key of Object.keys(ev)) {
-        if (!["url", "note", "archive_url"].includes(key)) {
+        if (
+          !["url", "note", "archive_url", "unavailable_since"].includes(key)
+        ) {
           err(`${at} に未知のフィールド: "${key}"`);
         }
       }
       const parsed = typeof ev.url === "string" ? parseTweetUrl(ev.url) : null;
       if (parsed) {
+        // ミラーや ?s=20 付きでも意味は取れるが、同じツイートが
+        // 別の書き方で重複登録されないよう書き方を揃えさせる
+        if (ev.url.trim() !== parsed.canonical) {
+          err(`${at}.url は \`${parsed.canonical}\` と書いてください`);
+        }
         if (seenUrls.has(parsed.tweetId))
           err(`${at}.url のツイートが重複しています`);
         seenUrls.add(parsed.tweetId);
@@ -141,6 +150,12 @@ export function validateAccount(data, { filename } = {}) {
         err(
           `${at}.url が不正です。https://x.com/<user>/status/<id> 形式にしてください（現在: ${JSON.stringify(ev.url)}）`,
         );
+      }
+      if (
+        ev.unavailable_since !== undefined &&
+        !RE_DATE.test(String(ev.unavailable_since))
+      ) {
+        err(`${at}.unavailable_since は YYYY-MM-DD 形式である必要があります`);
       }
       if (
         ev.note !== undefined &&
@@ -157,8 +172,16 @@ export function validateAccount(data, { filename } = {}) {
       err("note は1000文字以内の文字列である必要があります");
     }
   }
+  if (
+    data.delisted_reason !== undefined &&
+    (typeof data.delisted_reason !== "string" ||
+      data.delisted_reason.length > 300)
+  ) {
+    err("delisted_reason は300文字以内の文字列である必要があります");
+  }
   const freeText = [
     data.note ?? "",
+    data.delisted_reason ?? "",
     ...(data.evidence ?? []).map((e) => e?.note ?? ""),
   ].join("\n");
   for (const { re, label } of PII_PATTERNS) {
@@ -209,8 +232,22 @@ export function validateAccount(data, { filename } = {}) {
     !data.evidence.some((e) => e?.archive_url)
   ) {
     warnings.push(
-      "archive_url（魚拓）が未設定です。ツイート削除に備えて推奨します。",
+      "どの証拠にも魚拓がありません。投稿を消されると検証できなくなります。",
     );
+  }
+  // 証拠が全部消えて魚拓もないと、誰も掲載の妥当性を確かめられない
+  if (Array.isArray(data.evidence) && data.evidence.length > 0) {
+    const verifiable = data.evidence.filter(
+      (e) => !e?.unavailable_since || e?.archive_url,
+    );
+    if (verifiable.length === 0) {
+      warnings.push(
+        "証拠の投稿がすべて削除され、魚拓もありません。掲載を続けるか見直してください。",
+      );
+    }
+  }
+  if (data.status === "delisted" && !data.delisted_reason) {
+    warnings.push("掲載解除の理由（delisted_reason）が書かれていません。");
   }
 
   return { errors, warnings };

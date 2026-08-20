@@ -40,6 +40,7 @@
           "plagiarism",
           "engagement-farming",
           "undisclosed-promo",
+          "info-product",
           "scam"
         ]
       },
@@ -73,7 +74,12 @@
           "archive_url": {
             "type": "string",
             "format": "uri",
-            "description": "魚拓のURL。ツイートが消されても証拠が残ります。"
+            "description": "魚拓のURL。ツイートが消されても証拠が残ります。自動で埋まるので、普段は書く必要はありません。"
+          },
+          "unavailable_since": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+            "description": "書く必要はありません。"
           }
         }
       }
@@ -88,6 +94,11 @@
       "enum": ["listed", "username-changed", "suspended", "deleted", "delisted"],
       "default": "listed",
       "description": "listed=掲載中 / delisted=掲載解除。通常は書かなくて構いません。"
+    },
+    "delisted_reason": {
+      "type": "string",
+      "maxLength": 300,
+      "description": "掲載を解除した理由。status を delisted にするときに書きます。"
     },
     "username_history": {
       "type": "array",

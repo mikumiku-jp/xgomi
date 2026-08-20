@@ -28,7 +28,8 @@ body:
         該当するものをすべて選択（定義は [POLICY.md](../blob/main/POLICY.md) 参照）
         `ai-hype` 驚き屋 / `ai-slop` AI生成の粗製濫造 / `undisclosed-ai` AI生成の秘匿 /
         `misinformation` 誤情報 / `fake-demo` 捏造デモ / `plagiarism` 無断転載 /
-        `engagement-farming` インプレ稼ぎ / `undisclosed-promo` ステマ / `scam` 詐欺
+        `engagement-farming` インプレ稼ぎ / `undisclosed-promo` ステマ /
+        `info-product` 情報商材 / `scam` 詐欺
       multiple: true
       options:
         - ai-hype
@@ -39,6 +40,7 @@ body:
         - plagiarism
         - engagement-farming
         - undisclosed-promo
+        - info-product
         - scam
     validations:
       required: true

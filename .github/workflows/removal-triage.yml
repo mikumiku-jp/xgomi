@@ -1,0 +1,50 @@
+name: removal-triage
+
+# 掲載解除リクエストが来たら、判断材料を自動で集めて Issue にコメントする。
+# 解除するかどうかは人が決める（誰でも申請できる以上、自動解除はできない）。
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: removal-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    if: contains(github.event.issue.labels.*.name, 'removal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 読むだけのジョブなので、トークンを .git/config に残さない
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: 下調べ
+        env:
+          # 環境変数経由で渡すことでシェルインジェクションを防ぐ
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/removal-triage.mjs > triage.md
+
+      - name: 結果を Issue にコメント
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          set -euo pipefail
+          {
+            cat triage.md
+            echo
+            echo "---"
+            echo "メンテナは、解除するなら \`/delist <対象> <理由>\` とコメントしてください。"
+          } >> comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md

@@ -14,32 +14,76 @@ import {
   userByScreenName,
   tweetById,
   parseTweetUrl,
-  parseHandleInput,
+  classifyAccountInput,
+  archiveUrl,
   today,
   sleep,
 } from "./lib/x.mjs";
 import { validateAccount, CATEGORIES } from "./lib/validate-core.mjs";
+import { parseIssueForm } from "./lib/issue-form.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ACCOUNTS_DIR = path.join(ROOT, "accounts");
-
-/** Issue Form の本文を "### 見出し" 単位で分解する */
-function parseIssueForm(body) {
-  const sections = {};
-  const parts = body.split(/^###\s+/m).slice(1);
-  for (const part of parts) {
-    const nl = part.indexOf("\n");
-    const heading = (nl === -1 ? part : part.slice(0, nl)).trim();
-    const value = (nl === -1 ? "" : part.slice(nl + 1)).trim();
-    sections[heading] = value === "_No response_" ? "" : value;
-  }
-  return sections;
-}
 
 const fail = (msg) => {
   console.error(msg);
   process.exit(1);
 };
+
+/**
+ * 入力と証拠ツイートから対象アカウントを確定する。
+ * 数値IDで報告された場合は直接引けないので、証拠ツイートの投稿者から逆引きする。
+ */
+async function resolveTarget(target, tweetIds) {
+  const byHandle = async (handle) => {
+    const u = await userByScreenName(handle).catch((e) =>
+      fail(`X への問い合わせに失敗しました: ${e.message}\n時間をおいて再度お試しください。`),
+    );
+    return u;
+  };
+
+  if (target.kind === "handle") {
+    const u = await byHandle(target.value);
+    if (!u) {
+      fail(
+        `\`@${target.value}\` を見つけられませんでした。凍結・改名・削除、または綴り間違いの可能性があります。`,
+      );
+    }
+    return u;
+  }
+
+  // 数値IDとして扱う。証拠ツイートの投稿者がそのIDなら、現在のハンドルが分かる
+  const tryNumeric = async () => {
+    for (const tweetId of tweetIds) {
+      const tweet = await tweetById(tweetId).catch(() => null);
+      await sleep(400);
+      if (tweet && tweet.authorId === target.value && tweet.authorUsername) {
+        const u = await byHandle(tweet.authorUsername);
+        if (u && u.id === target.value) return u;
+      }
+    }
+    return null;
+  };
+
+  if (target.kind === "numeric-id") {
+    const u = await tryNumeric();
+    if (!u) {
+      fail(
+        `数値ID \`${target.value}\` の現在のユーザー名を特定できませんでした。\n記入した証拠ツイートがこのIDの投稿ではないか、削除されています。対象アカウントには \`@username\` を記入してください。`,
+      );
+    }
+    return u;
+  }
+
+  // ambiguous: 数字だけの短い入力。ユーザー名としても数値IDとしても読める
+  const asHandle = await byHandle(target.value);
+  if (asHandle) return asHandle;
+  const asId = await tryNumeric();
+  if (asId) return asId;
+  fail(
+    `\`${target.value}\` はユーザー名としても数値IDとしても見つかりませんでした。対象アカウントには \`@username\` を記入してください。`,
+  );
+}
 
 async function main() {
   const body = process.env.ISSUE_BODY ?? (await readFile(0, "utf8"));
@@ -49,23 +93,11 @@ async function main() {
 
   // --- 対象アカウント ---
   const rawAccount = s["対象アカウント"] ?? "";
-  const handle = parseHandleInput(rawAccount);
-  if (!handle) {
-    // なぜ弾かれたのかを具体的に返す（単なる「形式エラー」だと利用者が原因を特定できない）
-    const bare = String(rawAccount)
-      .trim()
-      .replace(/^https?:\/\/(?:x|twitter)\.com\//i, "")
-      .replace(/^@/, "")
-      .split(/[/?#]/)[0];
-    let reason =
-      "`@username` または `https://x.com/username` の形式で記入してください。";
-    if (bare.length > 15) {
-      reason = `\`${bare}\` は ${bare.length} 文字です。X のユーザー名は **15文字以内** なので、この時点で存在し得ません。綴りを確認してください。`;
-    } else if (/[^A-Za-z0-9_]/.test(bare)) {
-      const bad = [...new Set(bare.match(/[^A-Za-z0-9_]/g))].join(" ");
-      reason = `使用できない文字が含まれています: ${bad}\nX のユーザー名は半角英数字と \`_\` のみです（表示名ではなく @ から始まるハンドルを記入してください）。`;
-    }
-    fail(`対象アカウントを解釈できませんでした: \`${rawAccount}\`\n${reason}`);
+  const target = classifyAccountInput(rawAccount);
+  if (target.kind === "invalid") {
+    fail(
+      `対象アカウントを解釈できませんでした: \`${rawAccount}\`\n${target.reason}\n\n\`@username\` または \`https://x.com/username\` の形式で記入してください。`,
+    );
   }
 
   // --- カテゴリ ---
@@ -98,13 +130,18 @@ async function main() {
     );
   }
 
-  // --- 数値IDを解決 ---
-  const user = await userByScreenName(handle);
-  if (!user) {
-    fail(
-      `\`@${handle}\` を解決できませんでした。凍結・改名・削除、または綴り間違いの可能性があります。`,
-    );
+  // 同じツイートが別の書き方（ミラーや ?s=20 付き）で並んでいることがある
+  const uniqueTweets = [];
+  const seenTweetIds = new Set();
+  for (const u of evidenceUrls) {
+    const { tweetId } = parseTweetUrl(u);
+    if (seenTweetIds.has(tweetId)) continue;
+    seenTweetIds.add(tweetId);
+    uniqueTweets.push(tweetId);
   }
+
+  // --- 対象アカウントを確定 ---
+  const user = await resolveTarget(target, uniqueTweets);
   if (user.protected) {
     fail(
       `\`@${user.username}\` は鍵アカウントです。第三者が内容を検証できないため、掲載対象外です（POLICY.md）。`,
@@ -115,24 +152,25 @@ async function main() {
   const evidence = [];
   const mismatches = [];
   const unavailable = [];
-  for (const url of evidenceUrls) {
-    const { tweetId } = parseTweetUrl(url);
+  for (const tweetId of uniqueTweets) {
     const tweet = await tweetById(tweetId).catch(() => null);
     await sleep(400);
 
     if (!tweet) {
-      unavailable.push(url);
+      unavailable.push(`https://x.com/i/status/${tweetId}`);
       continue;
     }
     if (tweet.authorId !== user.id) {
       mismatches.push(
-        `- \`${url}\` の投稿者は @${tweet.authorUsername} (id=${tweet.authorId}) です`,
+        `- \`https://x.com/${tweet.authorUsername}/status/${tweetId}\` の投稿者は @${tweet.authorUsername} (id=${tweet.authorId}) です`,
       );
       continue;
     }
-    evidence.push({
-      url: `https://x.com/${tweet.authorUsername}/status/${tweetId}`,
-    });
+    const url = `https://x.com/${tweet.authorUsername}/status/${tweetId}`;
+    // 投稿を消されても検証できるよう、この時点で魚拓を押さえておく。
+    // 失敗しても報告自体は通す（後で archive ワークフローが拾う）
+    const archived = await archiveUrl(url);
+    evidence.push(archived ? { url, archive_url: archived } : { url });
   }
 
   if (mismatches.length > 0) {

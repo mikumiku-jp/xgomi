@@ -1,0 +1,145 @@
+name: delist-command
+
+# メンテナが Issue に `/delist <対象> <理由>` とコメントすると、
+# 掲載解除の PR を作る。
+#
+# 権限チェックは必須。これがないと誰でも任意のエントリを消せてしまう。
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: delist-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  delist:
+    if: startsWith(github.event.comment.body, '/delist')
+    runs-on: ubuntu-latest
+    steps:
+      - name: コメント投稿者の権限を確認
+        id: perm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          level="$(gh api "repos/${REPO}/collaborators/${COMMENTER}/permission" \
+            --jq '.permission' 2>/dev/null || echo "none")"
+          echo "level=${level}" >> "$GITHUB_OUTPUT"
+          if [ "$level" != "admin" ] && [ "$level" != "write" ]; then
+            echo "::notice::${COMMENTER} には書き込み権限がありません（${level}）"
+          fi
+
+      - name: 権限がない場合は拒否
+        if: steps.perm.outputs.level != 'admin' && steps.perm.outputs.level != 'write'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh issue comment "$ISSUE_NUMBER" --repo "$REPO" \
+            --body "\`/delist\` はメンテナ専用です。掲載に誤りがある場合は掲載解除リクエストを出してください。"
+          exit 1
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: コマンドを解釈して掲載解除
+        id: delist
+        env:
+          # 環境変数経由で渡すことでシェルインジェクションを防ぐ
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          set -uo pipefail
+          # "/delist @example 理由の文" → 対象と理由に分ける
+          first_line="$(printf '%s' "$COMMENT_BODY" | head -n 1)"
+          rest="${first_line#/delist}"
+          rest="$(printf '%s' "$rest" | sed 's/^[[:space:]]*//')"
+          DELIST_TARGET="$(printf '%s' "$rest" | awk '{print $1}')"
+          DELIST_REASON="$(printf '%s' "$rest" | cut -s -d' ' -f2-)"
+          export DELIST_TARGET DELIST_REASON
+
+          if node scripts/delist.mjs > delist.log 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat delist.log
+
+      - name: 失敗理由をコメント
+        if: steps.delist.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo "## ⚠ 掲載解除に失敗しました"
+            echo
+            echo '```'
+            cat delist.log
+            echo '```'
+            echo
+            echo "書き方: \`/delist @example 人違いのため\`"
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md
+          exit 1
+
+      - name: PR を作成
+        if: steps.delist.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+          ACC_ID: ${{ steps.delist.outputs.id }}
+          ACC_USERNAME: ${{ steps.delist.outputs.username }}
+          DELIST_REASON: ${{ steps.delist.outputs.reason }}
+        run: |
+          set -euo pipefail
+          branch="delist/issue-${ISSUE_NUMBER}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add "accounts/${ACC_ID}.json"
+          git commit -m "掲載解除: @${ACC_USERNAME} (id=${ACC_ID})" -m "Closes #${ISSUE_NUMBER}"
+          git push --force origin "$branch"
+
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh issue comment "$ISSUE_NUMBER" --body "掲載解除 PR を更新しました。"
+            exit 0
+          fi
+
+          {
+            echo "Closes #${ISSUE_NUMBER}"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| 数値ID | \`${ACC_ID}\` |"
+            echo "| username | @${ACC_USERNAME} |"
+            echo "| 理由 | ${DELIST_REASON} |"
+            echo "| 判断 | @${COMMENTER} |"
+            echo
+            echo "エントリは削除せず \`status\` を \`delisted\` にしています。"
+            echo "同じ報告が繰り返されたときに、一度判断した記録が残っている必要があるためです。"
+            echo "配布物（\`dist/\`）からは除外されます。"
+          } > pr-body.md
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "掲載解除: @${ACC_USERNAME} (id=${ACC_ID})" \
+            --body-file pr-body.md \
+            --label removal
+
+          gh issue comment "$ISSUE_NUMBER" --body "掲載解除の PR を作成しました。"

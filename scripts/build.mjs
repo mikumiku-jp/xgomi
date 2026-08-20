@@ -34,7 +34,15 @@ async function main() {
   // $schema はエディタ補完用の内部フィールドなので配布物からは除く
   const active = accounts
     .filter((a) => a.status !== "delisted")
-    .map(({ $schema, ...rest }) => rest);
+    .map(({ $schema, ...rest }) => rest)
+    .map((a) => {
+      // 手放したハンドルは別人が取得できる。本人のものだと確認できない
+      // ハンドルを配布物に残すと、それを読んだツールが無関係の人をブロックする。
+      if (a.status !== "username-changed") return a;
+      const history = new Set(a.username_history ?? []);
+      history.add(a.username);
+      return { ...a, username: null, username_history: [...history] };
+    });
   active.sort((a, b) => a.id.localeCompare(b.id, "en", { numeric: true }));
 
   await mkdir(DIST_DIR, { recursive: true });
@@ -65,7 +73,9 @@ async function main() {
   //    本人のものだと確認できているハンドルだけを出す。
   //    改名後のハンドルは別人が取得していることがあり、
   //    そのまま配布すると無関係の人がブロックされる。
-  const nameSafe = active.filter((a) => (a.status ?? "listed") === "listed");
+  const nameSafe = active.filter(
+    (a) => (a.status ?? "listed") === "listed" && a.username,
+  );
   await writeFile(
     path.join(DIST_DIR, "usernames.txt"),
     nameSafe.map((a) => a.username).join("\n") + (nameSafe.length ? "\n" : ""),
@@ -77,7 +87,7 @@ async function main() {
   const rows = active.map((a) =>
     [
       a.id,
-      a.username,
+      a.username ?? "",
       (a.categories ?? []).join("|"),
       a.severity ?? "medium",
       a.status ?? "listed",

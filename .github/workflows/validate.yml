@@ -50,6 +50,9 @@ jobs:
             exit 1
           fi
 
+      - name: 自己テスト
+        run: node scripts/selftest.mjs
+
       - name: 形式チェック（全件）
         run: node scripts/validate.mjs
 

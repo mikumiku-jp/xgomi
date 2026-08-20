@@ -9,6 +9,7 @@
 //   3. 証拠ツイートを引く（tweet-result は「現在の」ハンドルを返す）
 //      → 投稿者 id が一致すれば、そこから新しい username を復元する
 //   4. 何も辿れなければ suspended として印を付け、人間のレビューに回す
+//   5. あわせて証拠の生死を記録し、魚拓のないものはここで拼う
 
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { appendFileSync } from "node:fs";
@@ -17,6 +18,8 @@ import {
   userByScreenName,
   tweetById,
   parseTweetUrl,
+  archiveUrl,
+  waybackLookup,
   today,
   sleep,
 } from "./lib/x.mjs";
@@ -24,19 +27,56 @@ import {
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ACCOUNTS_DIR = path.join(ROOT, "accounts");
 
-/** 生きている証拠ツイートから現在のハンドルを復元する */
-async function recoverUsernameFromEvidence(data) {
+/**
+ * 証拠ツイートを一通り見て、生死を data に書き込む。
+ * ついでに現在のハンドルを復元し、魚拓のないものを拼う。
+ */
+async function auditEvidence(data) {
+  let recovered = null;
+  let alive = 0;
+  const died = [];
+  const revived = [];
+  const archived = [];
+
   for (const ev of data.evidence ?? []) {
     const parsed = parseTweetUrl(ev?.url ?? "");
     if (!parsed) continue;
 
     const tweet = await tweetById(parsed.tweetId).catch(() => null);
-    await sleep(500);
-    if (tweet?.authorId === data.id && tweet.authorUsername) {
-      return tweet.authorUsername;
+    await sleep(400);
+
+    if (tweet) {
+      alive++;
+      if (ev.unavailable_since) {
+        delete ev.unavailable_since;
+        revived.push(ev.url);
+      }
+      if (!recovered && tweet.authorId === data.id && tweet.authorUsername) {
+        recovered = tweet.authorUsername;
+      }
+      if (!ev.archive_url) {
+        const a = await archiveUrl(ev.url);
+        if (a) {
+          ev.archive_url = a;
+          archived.push(ev.url);
+        }
+      }
+    } else {
+      if (!ev.unavailable_since) {
+        ev.unavailable_since = today();
+        died.push(ev.url);
+      }
+      // 消された後でも、過去に取られた魚拓が見つかることがある
+      if (!ev.archive_url) {
+        const a = await waybackLookup(ev.url);
+        if (a) {
+          ev.archive_url = a;
+          archived.push(ev.url);
+        }
+      }
     }
   }
-  return null;
+  return { recovered, alive, died, revived, archived };
 }
 
 async function main() {
@@ -75,6 +115,9 @@ async function main() {
     }
     await sleep(700);
 
+    // 証拠の生死は毎回見る。「掲載されたら全部消して逃げる」を拾うため
+    const audit = await auditEvidence(data);
+
     if (resolved && resolved.id === data.id) {
       // 健在。表示名の変化だけ拾う
       data.status = "listed";
@@ -82,8 +125,7 @@ async function main() {
         data.display_name = resolved.displayName;
       }
     } else {
-      // ハンドルが本人のものでなくなった → 証拠ツイートから復元を試みる
-      const recovered = await recoverUsernameFromEvidence(data);
+      const recovered = audit.recovered;
 
       if (
         recovered &&
@@ -120,6 +162,26 @@ async function main() {
           );
         }
       }
+    }
+
+    // 証拠の変化を報告する
+    if (audit.died.length > 0) {
+      changes.push(
+        `🗑 id=${data.id} (@${data.username}): 証拠 ${audit.died.length} 件が削除されました。`,
+      );
+    }
+    if (audit.archived.length > 0) {
+      changes.push(
+        `📚 id=${data.id} (@${data.username}): 魚拓を ${audit.archived.length} 件確保しました。`,
+      );
+    }
+    const verifiable = (data.evidence ?? []).filter(
+      (e) => !e.unavailable_since || e.archive_url,
+    );
+    if (verifiable.length === 0 && (data.evidence ?? []).length > 0) {
+      changes.push(
+        `❗ id=${data.id} (@${data.username}): 証拠がすべて消え、魚拓もありません。掲載を続けるか人間の判断が必要です。`,
+      );
     }
 
     data.last_checked_at = today();

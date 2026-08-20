@@ -8,19 +8,14 @@ body:
       value: |
         送信前に [POLICY.md](../blob/main/POLICY.md) の掲載基準を確認してください。
 
-        **証拠ツイートは必須です。** 送信すると自動で以下が実行されます。
-
-        1. `@handle` から数値ID を解決
-        2. 証拠ツイートの投稿者が本人か照合
-        3. 問題なければ PR を自動作成
-
-        照合に失敗した場合は、このIssueに理由がコメントされます。
+        **証拠ツイートは必須です。**
+        内容に問題があれば、このIssueに理由をコメントします。本文を直せば再確認されます。
 
   - type: input
     id: account
     attributes:
       label: 対象アカウント
-      description: "`@handle` または プロフィールURL。数値IDは自動で解決するので不要です。"
+      description: "`@handle` または プロフィールURL。数値IDを調べる必要はありません。"
       placeholder: "@example  または  https://x.com/example"
     validations:
       required: true
@@ -53,7 +48,7 @@ body:
     attributes:
       label: 証拠ツイートURL
       description: |
-        1行に1件。**対象アカウント本人の投稿** である必要があります（自動照合されます）。
+        1行に1件。**対象アカウント本人の投稿** にかぎります。
         `ai-hype` `ai-slop` `engagement-farming` は常習性が要件なので2件以上を推奨します。
       placeholder: |
         https://x.com/example/status/1234567890123456789
@@ -68,7 +63,7 @@ body:
       label: 補足
       description: |
         何が問題なのかを客観的に説明してください。
-        **人格攻撃・個人情報は書かないでください**（CIが検出したら却下されます）。
+        **人格攻撃・個人情報は書かないでください。**
       placeholder: 存在しない機能を「実装した」と主張し、デモ動画も生成物だった
 
   - type: checkboxes

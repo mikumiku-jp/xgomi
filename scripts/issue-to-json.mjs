@@ -124,7 +124,7 @@ async function main() {
     try {
       existing = JSON.parse(raw);
     } catch (e) {
-      fail(`既存の accounts/${user.id}.json を JSON として読めません: ${e.message}`);
+      fail(`このアカウントの既存の掲載データを読み込めませんでした。メンテナの対応が必要です。(${e.message})`);
     }
   }
 
@@ -157,7 +157,7 @@ async function main() {
 
   const { errors } = validateAccount(data, { filename: `${user.id}.json` });
   if (errors.length > 0) {
-    fail(`生成したデータが検証に失敗しました:\n${errors.map((e) => `- ${e}`).join("\n")}`);
+    fail(`入力内容に問題があります:\n${errors.map((e) => `- ${e}`).join("\n")}`);
   }
 
   await writeFile(filePath, `${JSON.stringify(data, null, 2)}\n`);

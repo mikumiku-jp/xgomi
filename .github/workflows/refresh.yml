@@ -57,7 +57,7 @@ jobs:
           fi
 
           {
-            echo "定期実行により、掲載アカウントの状態を更新しました。"
+            echo "掲載アカウントの状態を更新しました。"
             echo
             echo "### 検知した変更"
             echo
@@ -65,8 +65,7 @@ jobs:
             echo "${SUMMARY:-なし}"
             echo '```'
             echo
-            echo "改名は証拠ツイートから現在のハンドルを逆引きして追跡しています。"
-            echo "\`status: suspended\` は凍結・削除の疑いです（誤判定の可能性があるため要確認）。"
+            echo "\`status: suspended\` は凍結・削除の疑いです。誤判定のこともあるので確認してください。"
           } > pr-body.md
 
           gh pr create \

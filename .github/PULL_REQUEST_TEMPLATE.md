@@ -1,5 +1,5 @@
 <!--
-掲載の提案なら、Issue から送るほうが簡単です（数値ID解決・証拠照合・JSON生成が自動）:
+掲載の提案なら、Issue から送るほうが簡単です（アカウントと証拠URLを書くだけ）:
 https://github.com/mikumiku-jp/xgomi/issues/new?template=report.yml
 -->
 
@@ -17,13 +17,13 @@ https://github.com/mikumiku-jp/xgomi/issues/new?template=report.yml
 ## 掲載の追加・更新の場合
 
 - [ ] `node scripts/validate.mjs --network accounts/<id>.json` が通った
-- [ ] ファイル名が数値ID（`rest_id`）と一致している
+- [ ] ファイル名が数値IDと一致している
 - [ ] 証拠ツイートは対象アカウント本人の投稿である
 - [ ] [POLICY.md](../blob/main/POLICY.md) のカテゴリ定義に該当する
 - [ ] 常習性の要件を満たす（`ai-hype` / `ai-slop` / `engagement-farming` の場合）
 - [ ] 個人情報・人格攻撃を含んでいない
 - [ ] 私怨・意見の不一致による報告ではない
-- [ ] `dist/` を編集していない（CIが自動生成します）
+- [ ] `dist/` を編集していない（自動生成されます）
 
 ## 補足
 

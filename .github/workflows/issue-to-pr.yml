@@ -105,11 +105,10 @@ jobs:
             echo "| 証拠件数 | ${EVIDENCE_COUNT} |"
             echo "| 報告者 | @${ISSUE_USER} |"
             echo
-            echo "### 自動検証済み"
+            echo "### 確認済み"
             echo
-            echo "- ✅ \`@${ACC_USERNAME}\` から数値ID \`${ACC_ID}\` を解決"
-            echo "- ✅ 全ての証拠ツイートの投稿者が \`${ACC_ID}\` と一致"
-            echo "- ✅ スキーマ検証を通過"
+            echo "- ✅ 証拠ツイートはすべて @${ACC_USERNAME} 本人の投稿"
+            echo "- ✅ 記載内容の形式に問題なし"
             echo
             echo "### レビュー時の確認事項"
             echo
@@ -117,9 +116,6 @@ jobs:
             echo "- [ ] 常習性の要件を満たすか（\`ai-hype\` / \`ai-slop\` / \`engagement-farming\`）"
             echo "- [ ] 私怨・意見の不一致による報告ではないか"
             echo "- [ ] 個人情報・人格攻撃が含まれていないか"
-            echo
-            echo "> このPRは \`GITHUB_TOKEN\` により作成されているため \`validate.yml\` は起動しません。"
-            echo "> 同等の検証は変換時に実施済みです。"
           } > pr-body.md
 
           gh pr create \

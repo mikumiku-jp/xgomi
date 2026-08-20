@@ -48,6 +48,9 @@ Issue を送ると、GitHub Actions が自動で:
 検証に失敗した場合は、理由が Issue にコメントされます。
 手動で PR を送ることもできます → [CONTRIBUTING.md](CONTRIBUTING.md)
 
+掲載に誤りがあれば [掲載解除をリクエスト](../../issues/new?template=removal.yml)、
+カテゴリの提案や不具合は [その他](../../issues/new?template=other.yml) からどうぞ。
+
 ## なぜ username ではなく数値ID なのか
 
 `@handle` はいつでも変更できます。数値ID (`rest_id`) はアカウント削除まで変わりません。
@@ -110,8 +113,11 @@ node scripts/refresh.mjs               # 改名・凍結を追跡して accounts
 | --- | --- | --- |
 | `validate.yml` | PR | 変更されたエントリを検証（証拠の投稿者照合を含む） |
 | `issue-to-pr.yml` | Issue に `report` ラベル | Issue を JSON 化して PR を自動作成 |
+| `removal-triage.yml` | Issue に `removal` ラベル | 証拠の生死と投稿者を確かめ、判断材料をコメント |
+| `delist-command.yml` | メンテナの `/delist` コメント | 掲載解除の PR を作成 |
 | `build.yml` | main への push | `dist/` を再生成してコミット |
-| `refresh.yml` | 毎日 / 手動 | 改名・凍結を検知して PR を作成 |
+| `refresh.yml` | 毎日 / 手動 | 改名・凍結・証拠の削除を検知して PR を作成 |
+| `stale.yml` | 毎週 | 検証に失敗したまま30日放置された報告 Issue を閉じる |
 
 ## ライセンス
 

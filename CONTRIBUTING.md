@@ -98,6 +98,20 @@ git push origin add/example
 [掲載解除リクエスト](../../issues/new?template=removal.yml) を使ってください。
 本人からの申請でも第三者からの指摘でも受け付けます。身元を示す情報は書かないでください。
 
+申請が届くと、証拠ツイートが今も生きているか、投稿者が本当にそのIDなのかを
+自動で確かめてコメントします。解除するかどうかは人が判断します。
+
+解除してもエントリは削除せず、`status` を `delisted` にして理由を残します。
+同じ報告が繰り返されたときに、一度判断した記録が必要だからです。配布物からは除外されます。
+
+## その他の提案・不具合
+
+カテゴリの追加提案、スクリプトの不具合、ポリシーへの意見などは
+[その他](../../issues/new?template=other.yml) からどうぞ。
+
+カテゴリを提案する場合は、**「これは含まない」の線引き** まで書いてください。
+定義が広すぎるカテゴリは正当な活動を巻き込み、リスト全体の信用を下げます。
+
 ## 開発
 
 依存パッケージはありません。Node.js 18 以降のみです。
@@ -106,11 +120,19 @@ git push origin add/example
 scripts/
   lib/x.mjs             X の公開エンドポイントへのクライアント（APIキー不要）
   lib/validate-core.mjs 検証ロジック（schema/account.schema.json と対応）
+  lib/issue-form.mjs    Issue Form 本文の分解
   validate.mjs          検証 CLI
   build.mjs             dist/ 生成
   issue-to-json.mjs     Issue Form → accounts/<id>.json
-  refresh.mjs           改名・凍結の追跡
+  refresh.mjs           改名・凍結・証拠削除の追跡
+  removal-triage.mjs    掲載解除リクエストの下調べ
+  delist.mjs            掲載解除の適用
+  selftest.mjs          自己テスト
 ```
 
-`schema/account.schema.json` を変更したら `scripts/lib/validate-core.mjs` も必ず追従させてください。
-両者は独立しており、自動では同期しません。
+`schema/account.schema.json` を変更したら `scripts/lib/validate-core.mjs` も追従させてください。
+両者は独立しており自動では同期しませんが、ずれていると `scripts/selftest.mjs` が落ちます。
+
+```bash
+node scripts/selftest.mjs
+```

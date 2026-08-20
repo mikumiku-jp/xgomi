@@ -37,7 +37,7 @@ curl -sL https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/dist/blocklist
 [アカウントを報告する](../../issues/new?template=1-report.yml) から Issue を送ります。
 書くのは3つだけで、タイトルは自動で付きます。
 
-1. 対象アカウント（`@handle` かプロフィールURL）
+1. 対象アカウント（`@handle` かプロフィールURL。1行に1件で、最大10件まとめられます）
 2. カテゴリ
 3. 証拠ツイートのURL（1件から。2件以上あるとレビューが早く済みます）
 
@@ -46,6 +46,11 @@ curl -sL https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/dist/blocklist
 
 証拠が1件でも照合できなければ、全体を差し戻して理由をコメントします。
 Issue本文を直せば、そのまま再検証が走ります。
+
+スパムの群など、同じ手口のアカウントは1つの Issue にまとめられます。
+証拠のURLは全員分を並べて貼るだけで、どのアカウントの根拠かは投稿者から自動で振り分けます。
+ただしカテゴリは全件共通になるので、別々に付けたいときは Issue を分けてください。
+まとめた場合もPRは1つで、可否はまとめて判断されます。
 
 PRがマージされても却下されても、Issueは結果のコメント付きで自動的に閉じます。
 

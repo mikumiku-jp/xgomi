@@ -22,6 +22,13 @@ import {
   SEVERITIES,
 } from "./lib/validate-core.mjs";
 import { parseIssueForm, parseCheckboxes } from "./lib/issue-form.mjs";
+import {
+  parseAccounts,
+  parseCategories,
+  parseEvidence,
+  groupEvidence,
+  describeAccounts,
+} from "./lib/report-input.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -298,6 +305,88 @@ eq(
 );
 eq("チェックボックスがなければ空", parseCheckboxes("ただの文章"), []);
 eq("未記入の確認欄は空", parseCheckboxes(""), []);
+
+// --------------------------------------------------------------------------
+// 6. まとめ提出の読み取り
+// --------------------------------------------------------------------------
+const names = (raw) => parseAccounts(raw).targets.map((t) => t.value);
+
+eq("対象アカウントを行ごとに読む", names("@a\nhttps://x.com/b\nc"), [
+  "a",
+  "b",
+  "c",
+]);
+eq("箇条書きの印を剥がす", names("- @a\n* @b"), ["a", "b"]);
+eq("同じアカウントの重複を畳む", names("@a\nhttps://x.com/A\n@b"), ["a", "b"]);
+eq("空行を無視する", names("@a\n\n\n@b"), ["a", "b"]);
+eq("未記入は0件", names(""), []);
+eq(
+  "読めない行だけを分けて返す",
+  parseAccounts("@a\n日本語のなまえ\n@b").invalid.map((i) => i.raw),
+  ["日本語のなまえ"],
+);
+
+eq(
+  "証拠URLを行ごとに読む",
+  parseEvidence(
+    "https://x.com/a/status/1\nhttps://twitter.com/a/status/1?s=20\nhttps://x.com/b/status/2",
+  ).tweetIds,
+  ["1", "2"],
+);
+eq(
+  "読めない証拠URLを分けて返す",
+  parseEvidence("https://x.com/a/status/1\nこれです").unreadable,
+  ["これです"],
+);
+
+eq(
+  "カテゴリを読む",
+  parseCategories("ai-slop, scam\nnope"),
+  ["ai-slop", "scam"],
+);
+eq(
+  "未チェックのカテゴリを拾わない",
+  parseCategories("- [X] ai-slop\n- [ ] scam"),
+  ["ai-slop"],
+);
+
+// どのアカウントの証拠かは投稿者が決める
+const tw = (tweetId, authorId) => ({
+  tweetId,
+  authorId,
+  authorUsername: `u${authorId}`,
+});
+const grouped = groupEvidence(
+  [tw("1", "10"), tw("2", "10"), tw("3", "20"), tw("4", "99")],
+  [
+    { id: "10", username: "u10" },
+    { id: "20", username: "u20" },
+    { id: "30", username: "u30" },
+  ],
+);
+eq(
+  "投稿者ごとに束ねる",
+  [...grouped.byUserId].map(([id, ts]) => [id, ts.length]),
+  [
+    ["10", 2],
+    ["20", 1],
+    ["30", 0],
+  ],
+);
+eq(
+  "対象外の投稿者を拾う",
+  grouped.orphans.map((t) => t.tweetId),
+  ["4"],
+);
+eq(
+  "証拠のないアカウントを拾う",
+  grouped.empty.map((u) => u.username),
+  ["u30"],
+);
+
+eq("1件はそのまま", describeAccounts(["@a"]), "@a");
+eq("複数件は件数を添える", describeAccounts(["@a", "@b", "@c"]), "@a ほか2件");
+eq("0件は空", describeAccounts([]), "");
 
 // --------------------------------------------------------------------------
 if (failed > 0) {

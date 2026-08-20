@@ -48,13 +48,12 @@ jobs:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           OK: ${{ steps.convert.outputs.ok }}
           LABEL: ${{ steps.convert.outputs.label }}
-          ACC_ID: ${{ steps.convert.outputs.id }}
-          ACC_USERNAME: ${{ steps.convert.outputs.username }}
+          ISSUE_LABEL: ${{ steps.convert.outputs.issue_title }}
         run: |
           set -euo pipefail
           # 失敗した報告も一覧で見分けられるように、分かっている分だけ出す
           if [ "$OK" = "true" ]; then
-            want="[report] @${ACC_USERNAME} (id=${ACC_ID})"
+            want="[report] ${ISSUE_LABEL}"
           elif [ -n "$LABEL" ]; then
             want="[report] ${LABEL}（検証エラー）"
           else
@@ -89,10 +88,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_USER: ${{ github.event.issue.user.login }}
-          ACC_ID: ${{ steps.convert.outputs.id }}
-          ACC_USERNAME: ${{ steps.convert.outputs.username }}
-          IS_NEW: ${{ steps.convert.outputs.is_new }}
-          EVIDENCE_COUNT: ${{ steps.convert.outputs.evidence_count }}
+          COUNT: ${{ steps.convert.outputs.count }}
+          FILES: ${{ steps.convert.outputs.files }}
+          SUBJECT: ${{ steps.convert.outputs.subject }}
+          ROWS: ${{ steps.convert.outputs.rows }}
         run: |
           set -euo pipefail
           branch="report/issue-${ISSUE_NUMBER}"
@@ -100,21 +99,17 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch"
-          git add "accounts/${ACC_ID}.json"
+          # accounts/<数字>.json の形しか入らないので、分割させて渡す
+          # shellcheck disable=SC2086
+          git add -- $FILES
 
           if git diff --cached --quiet; then
             gh issue comment "$ISSUE_NUMBER" \
-              --body "既存データに変更はありませんでした。このアカウントは既に掲載済みです: \`accounts/${ACC_ID}.json\`"
+              --body "既存データに変更はありませんでした。報告された内容はすべて掲載済みです。"
             exit 0
           fi
 
-          if [ "$IS_NEW" = "true" ]; then
-            action="追加"
-          else
-            action="更新"
-          fi
-
-          git commit -m "${action}: @${ACC_USERNAME} (id=${ACC_ID})" -m "Closes #${ISSUE_NUMBER}"
+          git commit -m "$SUBJECT" -m "Closes #${ISSUE_NUMBER}"
           git push --force origin "$branch"
 
           if gh pr view "$branch" --json number >/dev/null 2>&1; then
@@ -125,16 +120,15 @@ jobs:
           {
             echo "Closes #${ISSUE_NUMBER}"
             echo
-            echo "| | |"
-            echo "|---|---|"
-            echo "| 数値ID | \`${ACC_ID}\` |"
-            echo "| username | @${ACC_USERNAME} |"
-            echo "| 証拠件数 | ${EVIDENCE_COUNT} |"
-            echo "| 報告者 | @${ISSUE_USER} |"
+            echo "報告者 @${ISSUE_USER} / ${COUNT} 件"
+            echo
+            echo "| username | 数値ID | 証拠件数 | 種別 |"
+            echo "|---|---|---|---|"
+            echo "$ROWS"
             echo
             echo "### 確認済み"
             echo
-            echo "- ✅ 証拠ツイートはすべて @${ACC_USERNAME} 本人の投稿"
+            echo "- ✅ 証拠ツイートはすべて対象アカウント本人の投稿"
             echo "- ✅ 記載内容の形式に問題なし"
             echo
             echo "### レビュー時の確認事項"
@@ -143,12 +137,16 @@ jobs:
             echo "- [ ] 単発の言い間違いや勘違いを咎めるものになっていないか"
             echo "- [ ] 私怨や意見の不一致による報告ではないか"
             echo "- [ ] 個人情報や人格攻撃が含まれていないか"
+            if [ "$COUNT" -gt 1 ]; then
+              echo
+              echo "一部だけ見送る場合は、このブランチで該当の JSON を削除して push してください。"
+            fi
           } > pr-body.md
 
           gh pr create \
             --base main \
             --head "$branch" \
-            --title "${action}: @${ACC_USERNAME} (id=${ACC_ID})" \
+            --title "$SUBJECT" \
             --body-file pr-body.md \
             --label report
 

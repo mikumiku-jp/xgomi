@@ -15,12 +15,17 @@ body:
 
         タイトルは自動で付くので、そのまま送信してかまいません。
 
-  - type: input
+  - type: textarea
     id: account
     attributes:
       label: 対象アカウント
-      description: "`@handle` かプロフィールURL。数値IDを調べる必要はありません。"
-      placeholder: "@example  または  https://x.com/example"
+      description: |
+        `@handle` かプロフィールURL。数値IDを調べる必要はありません。
+        1行に1件で、最大10件までまとめて報告できます。
+      placeholder: |
+        @example
+        https://x.com/example2
+      render: text
     validations:
       required: true
 
@@ -30,6 +35,7 @@ body:
       label: カテゴリ
       description: |
         該当するものをすべて選んでください（定義は [POLICY.md](../blob/main/POLICY.md)）。
+        まとめて報告する場合、ここで選んだカテゴリは全件に付きます。別々に付けたいときは Issue を分けてください。
 
         - **AI関連**：`ai-hype` 驚き屋、`ai-slop` AI生成の粗製濫造、`undisclosed-ai` AI生成の秘匿、`fake-demo` 捏造デモ
         - **転載となりすまし**：`plagiarism` 無断転載、`content-farm` まとめサイトへの誘導、`impersonation` なりすまし
@@ -62,12 +68,13 @@ body:
     attributes:
       label: 証拠ツイートURL
       description: |
-        1行に1件です。
-        対象アカウント本人の投稿にかぎります。
+        1行に1件です。並び順は問いません。
+        対象アカウント本人の投稿にかぎります。どのアカウントの証拠かは投稿者から自動で振り分けます。
         1件でも受け付けますが、2件以上あるとレビューが早く済みます。
+        対象アカウントに挙げた全員分が必要です。
       placeholder: |
         https://x.com/example/status/1234567890123456789
-        https://x.com/example/status/9876543210987654321
+        https://x.com/example2/status/9876543210987654321
       render: text
     validations:
       required: true

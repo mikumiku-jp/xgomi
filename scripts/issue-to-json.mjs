@@ -125,9 +125,7 @@ async function main() {
   }
 
   // この先で失敗しても、どのアカウントの報告かはタイトルに出したい
-  emitOutput([
-    `label=${target.kind === "handle" ? "@" : ""}${target.value}`,
-  ]);
+  emitOutput([`label=${target.kind === "handle" ? "@" : ""}${target.value}`]);
 
   // --- カテゴリ ---
   const categories = (s["カテゴリ"] ?? "")
@@ -193,12 +191,12 @@ async function main() {
       rejected.push(
         `- https://x.com/i/status/${tweetId} 取得できません（削除済み、非公開、凍結のいずれか）`,
       );
-    } else if (tweet.authorId !== user.id) {
+    } else if (tweet.authorId === user.id) {
+      verified.push(`https://x.com/${tweet.authorUsername}/status/${tweetId}`);
+    } else {
       rejected.push(
         `- https://x.com/${tweet.authorUsername}/status/${tweetId}：投稿者が @${tweet.authorUsername} です`,
       );
-    } else {
-      verified.push(`https://x.com/${tweet.authorUsername}/status/${tweetId}`);
     }
   }
 

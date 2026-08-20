@@ -83,9 +83,7 @@ async function main() {
   }
 
   // 掲載が見つからなくても、申請対象だけはタイトルに出したい
-  emitOutputs([
-    `label=${target.kind === "handle" ? "@" : ""}${target.value}`,
-  ]);
+  emitOutputs([`label=${target.kind === "handle" ? "@" : ""}${target.value}`]);
 
   const accounts = await loadAccounts();
   const account = findAccount(accounts, target);

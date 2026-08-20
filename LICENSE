@@ -3,7 +3,7 @@
 このリポジトリは2つのライセンスで構成されています。
 
 - **データ**（`accounts/`, `dist/`, `schema/`）… CC0 1.0 Universal（パブリックドメイン）
-- **スクリプト**（`scripts/`, `.github/`）… MIT License
+- **スクリプト**（`scripts/`, `.github/`, `userscript/`）… MIT License
 
 自由に再配布・改変できます。ただし [POLICY.md](POLICY.md) の「禁止する使い方」を読んでください。
 ライセンスは利用を法的に許可するものであって、嫌がらせへの利用を是認するものではありません。

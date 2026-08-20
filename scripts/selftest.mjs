@@ -339,11 +339,10 @@ eq(
   ["これです"],
 );
 
-eq(
-  "カテゴリを読む",
-  parseCategories("ai-slop, scam\nnope"),
-  ["ai-slop", "scam"],
-);
+eq("カテゴリを読む", parseCategories("ai-slop, scam\nnope"), [
+  "ai-slop",
+  "scam",
+]);
 eq(
   "未チェックのカテゴリを拾わない",
   parseCategories("- [X] ai-slop\n- [ ] scam"),
@@ -387,6 +386,141 @@ eq(
 eq("1件はそのまま", describeAccounts(["@a"]), "@a");
 eq("複数件は件数を添える", describeAccounts(["@a", "@b", "@c"]), "@a ほか2件");
 eq("0件は空", describeAccounts([]), "");
+
+// --------------------------------------------------------------------------
+// 7. ユーザースクリプトと dist/ の契約
+// --------------------------------------------------------------------------
+
+// userscript/xgomi.user.js は dist/ を読んで動く。ここが噛み合わなくなる
+// 壊れ方は、配ったあとユーザーの画面で初めて分かるので、CIで止める。
+// build.mjs が列名や形式を変えたら、このセクションが落ちる。
+
+const userscript = await readFile(
+  path.join(ROOT, "userscript/xgomi.user.js"),
+  "utf8",
+);
+
+// --- 配布物としてのメタデータ ---
+const meta = userscript.slice(0, userscript.indexOf("==/UserScript=="));
+const metaTable = new Map();
+for (const line of meta.split("\n")) {
+  const m = /^\/\/ @(\S+)[ \t]+(.+)$/.exec(line.trimEnd());
+  if (m) metaTable.set(m[1], m[2].trim());
+}
+const metaOf = (key) => metaTable.get(key) ?? null;
+const RAW =
+  "https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/userscript/xgomi.user.js";
+
+check("@version がある", /^\d+\.\d+\.\d+$/.test(metaOf("version") || ""));
+// これがないと、更新しても入れた人には一生届かない
+eq("@downloadURL が配布場所を指す", metaOf("downloadURL"), RAW);
+eq("@updateURL が配布場所を指す", metaOf("updateURL"), RAW);
+// @connect * は「どこへでも送れる」宣言。READMEの説明より広い権限は持たせない
+check(
+  "@connect * を持たない",
+  !/^\/\/ @connect\s+\*\s*$/m.test(meta),
+  "@connect * は許可範囲が広すぎます",
+);
+check(
+  "既定ソースが dist/ を指す",
+  userscript.includes(
+    "https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/dist/blocklist.csv",
+  ),
+);
+
+// --- パーサを切り出す ---
+const usLines = userscript.split("\n");
+const pStart = usLines.findIndex((l) => /^\s*const RE_ID\s*=/.test(l));
+const pEnd = usLines.findIndex((l) =>
+  /^\s*const parseText\s*=\s*\(text\)\s*=>\s*parseSource/.test(l),
+);
+check(
+  "パーサを切り出せる",
+  pStart >= 0 && pEnd > pStart,
+  "userscript の構造が変わりました。この節の切り出し位置を直してください。",
+);
+
+if (pStart >= 0 && pEnd > pStart) {
+  // 切り出した部分をモジュールとして読み込む。ブラウザAPIに依存しない
+  // 純粋な関数なので、Node でそのまま動く。
+  const src = `${usLines.slice(pStart, pEnd).join("\n")}\nexport { parseSource };`;
+  const { parseSource } = await import(
+    `data:text/javascript;base64,${Buffer.from(src, "utf8").toString("base64")}`
+  );
+
+  const idsOf = (r) =>
+    r.entries
+      .filter((e) => e.type === "id")
+      .map((e) => e.v)
+      .sort();
+  const namesOf = (r) => {
+    const s = new Set();
+    for (const e of r.entries) if (e.type === "name") s.add(e.v);
+    for (const e of r.entries)
+      if (e.type === "id" && r.map[e.v]) s.add(r.map[e.v].toLowerCase());
+    return [...s].sort();
+  };
+  const dist = (f) => readFile(path.join(ROOT, "dist", f), "utf8");
+
+  // 期待値は dist/blocklist.json から導く。件数を直書きしないので、
+  // 掲載が増えてもこのテストは書き換えずに効き続ける。
+  let blocklist;
+  try {
+    blocklist = JSON.parse(await dist("blocklist.json"));
+  } catch (e) {
+    check("dist/blocklist.json が読める", false, String(e));
+    blocklist = { accounts: [] };
+  }
+  const live = blocklist.accounts.filter((a) => a.status !== "delisted");
+  const wantIds = live.map((a) => String(a.id)).sort();
+  const wantNames = live.map((a) => a.username.toLowerCase()).sort();
+
+  const csv = parseSource(await dist("blocklist.csv"));
+  eq("CSV: idを全件読める", idsOf(csv), wantIds);
+  eq("CSV: usernameを全件読める", namesOf(csv), wantNames);
+  // 対応表が揃っていれば、ユーザーの画面から x.com への逆引き問い合わせが発生しない
+  eq("CSV: 未解決のidが残らない", csv.bare, 0);
+
+  const json = parseSource(await dist("blocklist.json"));
+  eq("JSON: idを全件読める", idsOf(json), wantIds);
+  eq("JSON: usernameを全件読める", namesOf(json), wantNames);
+  eq("JSON: 未解決のidが残らない", json.bare, 0);
+
+  eq(
+    "ids.txt: idを全件読める",
+    idsOf(parseSource(await dist("ids.txt"))),
+    wantIds,
+  );
+  eq(
+    "usernames.txt: usernameを全件読める",
+    namesOf(parseSource(await dist("usernames.txt"))),
+    wantNames,
+  );
+
+  // --- 他所のリストを追加したときの読み取り ---
+  const ID = "1646160030352257025";
+  const names = (text) => namesOf(parseSource(text));
+  const ids = (text) => idsOf(parseSource(text));
+
+  // 2列目が理由やカテゴリのことがある。username と決めつけると、
+  // 「1646...,spam」から @spam という無関係のアカウントを消してしまう
+  eq("2列目が理由でも巻き込まない", names(`${ID},spam\n`), []);
+  eq("2列目が理由でも idは読む", ids(`${ID},spam\n`), [ID]);
+  eq("タブ区切りの2列目も同じ", names(`${ID}\tscam\n`), []);
+  eq("2列目が数値でも同じ", names(`${ID},42\n`), []);
+  // 列名の行を本文として読むと @user_id を消しにいく
+  eq("ヘッダ行を本文として読まない", names(`user_id,note\n${ID},spam\n`), []);
+  eq("ヘッダ行があってもidは読む", ids(`user_id,note\n${ID},spam\n`), [ID]);
+  // 空白区切りは、読めないと1件も拾えず無言で0件になる
+  eq("空白区切りのidを読む", ids(`${ID} someuser\n`), [ID]);
+  // @ が付いていれば書き手が username だと明示している
+  eq("@付きなら対応表に入れる", names(`${ID}, @someuser\n`), ["someuser"]);
+  eq("@付きは空白区切りでも入れる", names(`${ID} @someuser\n`), ["someuser"]);
+  // 既存の書き方を壊さない
+  eq("username: の空白を許す", names("username: someuser\n"), ["someuser"]);
+  eq("URLでも読める", names("https://x.com/someuser\n"), ["someuser"]);
+  eq("行末コメントを剥がす", ids(`${ID} # こいつ\n`), [ID]);
+}
 
 // --------------------------------------------------------------------------
 if (failed > 0) {

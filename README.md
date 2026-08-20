@@ -13,6 +13,18 @@ AI驚き屋、無断転載まとめアフィ、情報商材、インプレ稼ぎ
 
 ## 使う
 
+### ユーザースクリプト（おすすめ）
+
+掲載アカウントとその投稿を X の画面から消すユーザースクリプトを配っています。
+相手をブロック/ミュートするわけではなく、**消えるのは自分の画面だけ**です。
+
+1. [Tampermonkey](https://www.tampermonkey.net/) か [Violentmonkey](https://violentmonkey.github.io/) を入れる
+2. **[xgomi.user.js をインストール](https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/userscript/xgomi.user.js)**
+
+詳しくは [userscript/README.md](userscript/README.md)。
+
+### 生データ
+
 `dist/` を直接読み込めます。
 
 | ファイル | 用途 |

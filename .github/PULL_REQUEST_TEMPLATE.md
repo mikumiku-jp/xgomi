@@ -1,6 +1,6 @@
 <!--
 掲載の提案なら、Issue から送るほうが簡単です（アカウントと証拠URLを書くだけ）:
-https://github.com/mikumiku-jp/xgomi/issues/new?template=report.yml
+https://github.com/mikumiku-jp/xgomi/issues/new?template=1-report.yml
 -->
 
 ## 内容

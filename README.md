@@ -32,7 +32,7 @@ curl -sL https://raw.githubusercontent.com/mikumiku-jp/xgomi/main/dist/blocklist
 
 ## 登録する
 
-[**アカウントを報告する**](../../issues/new?template=report.yml) から Issue を送ってください。
+[**アカウントを報告する**](../../issues/new?template=1-report.yml) から Issue を送ってください。
 必要なのは以下の3つだけです。
 
 1. 対象アカウント（`@handle` または プロフィールURL）
@@ -48,8 +48,8 @@ Issue を送ると、GitHub Actions が自動で:
 検証に失敗した場合は、理由が Issue にコメントされます。
 手動で PR を送ることもできます → [CONTRIBUTING.md](CONTRIBUTING.md)
 
-掲載に誤りがあれば [掲載解除をリクエスト](../../issues/new?template=removal.yml)、
-カテゴリの提案や不具合は [その他](../../issues/new?template=other.yml) からどうぞ。
+掲載に誤りがあれば [掲載解除をリクエスト](../../issues/new?template=2-removal.yml)、
+カテゴリの提案や不具合は [その他](../../issues/new?template=3-other.yml) からどうぞ。
 
 ## なぜ username ではなく数値ID なのか
 
@@ -127,5 +127,5 @@ node scripts/refresh.mjs               # 改名・凍結を追跡して accounts
 ## 免責
 
 掲載は各投稿の内容についての評価であり、人物の否定ではありません。
-誤りがあれば [掲載解除リクエスト](../../issues/new?template=removal.yml) から申請してください。
+誤りがあれば [掲載解除リクエスト](../../issues/new?template=2-removal.yml) から申請してください。
 このデータを嫌がらせ・通報の呼びかけに使うことは [POLICY.md](POLICY.md) で明確に禁止しています。

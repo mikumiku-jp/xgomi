@@ -4,7 +4,7 @@
 
 ## 1. Issue から報告する（推奨）
 
-[アカウントを報告する](../../issues/new?template=report.yml) から送信してください。
+[アカウントを報告する](../../issues/new?template=1-report.yml) から送信してください。
 数値ID の解決も、証拠ツイートの照合も、JSON の生成も自動で行われます。
 GitHub の操作に慣れていなくても報告できます。
 
@@ -95,7 +95,7 @@ git push origin add/example
 
 ## 掲載解除
 
-[掲載解除リクエスト](../../issues/new?template=removal.yml) を使ってください。
+[掲載解除リクエスト](../../issues/new?template=2-removal.yml) を使ってください。
 本人からの申請でも第三者からの指摘でも受け付けます。身元を示す情報は書かないでください。
 
 申請が届くと、証拠ツイートが今も生きているか、投稿者が本当にそのIDなのかを
@@ -107,7 +107,7 @@ git push origin add/example
 ## その他の提案・不具合
 
 カテゴリの追加提案、スクリプトの不具合、ポリシーへの意見などは
-[その他](../../issues/new?template=other.yml) からどうぞ。
+[その他](../../issues/new?template=3-other.yml) からどうぞ。
 
 カテゴリを提案する場合は、**「これは含まない」の線引き** まで書いてください。
 定義が広すぎるカテゴリは正当な活動を巻き込み、リスト全体の信用を下げます。

@@ -25,6 +25,9 @@ jobs:
         with:
           node-version: "22"
 
+      - name: 自己テスト
+        run: node scripts/selftest.mjs
+
       - name: 検証
         run: node scripts/validate.mjs
 

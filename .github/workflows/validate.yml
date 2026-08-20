@@ -1,8 +1,7 @@
 name: validate
 
 on:
-  # 必須チェックなので、絞り込まず全PRで動かす。
-  # 動かないPRがあると、その結果を待ち続けてマージできなくなる。
+  # 自己テストは README や POLICY のカテゴリ表も検査するので、絞り込まない。
   pull_request:
 
 permissions:

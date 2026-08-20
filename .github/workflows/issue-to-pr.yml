@@ -1,0 +1,132 @@
+name: issue-to-pr
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: issue-to-pr-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  convert:
+    if: contains(github.event.issue.labels.*.name, 'report')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: Issue を JSON に変換して検証
+        id: convert
+        env:
+          # 環境変数経由で渡すことでシェルインジェクションを防ぐ
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          if node scripts/issue-to-json.mjs > convert.log 2>&1; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          fi
+          cat convert.log
+
+      - name: 失敗理由を Issue にコメント
+        if: steps.convert.outputs.ok == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo "## ⚠ 自動検証に失敗しました"
+            echo
+            echo '```'
+            cat convert.log
+            echo '```'
+            echo
+            echo "Issue 本文を編集すると自動で再検証されます。"
+            echo "証拠ツイートが削除済みの場合は、魚拓URLを添えて手動でPRを送ってください（[CONTRIBUTING.md](../blob/main/CONTRIBUTING.md)）。"
+          } > comment.md
+          gh issue comment "$ISSUE_NUMBER" --body-file comment.md
+          exit 1
+
+      - name: PR を作成 / 更新
+        if: steps.convert.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          ACC_ID: ${{ steps.convert.outputs.id }}
+          ACC_USERNAME: ${{ steps.convert.outputs.username }}
+          IS_NEW: ${{ steps.convert.outputs.is_new }}
+          EVIDENCE_COUNT: ${{ steps.convert.outputs.evidence_count }}
+        run: |
+          set -euo pipefail
+          branch="report/issue-${ISSUE_NUMBER}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add "accounts/${ACC_ID}.json"
+
+          if git diff --cached --quiet; then
+            gh issue comment "$ISSUE_NUMBER" \
+              --body "既存データに変更はありませんでした。このアカウントは既に掲載済みです: \`accounts/${ACC_ID}.json\`"
+            exit 0
+          fi
+
+          if [ "$IS_NEW" = "true" ]; then
+            action="追加"
+          else
+            action="更新"
+          fi
+
+          git commit -m "${action}: @${ACC_USERNAME} (id=${ACC_ID})" -m "Closes #${ISSUE_NUMBER}"
+          git push --force origin "$branch"
+
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh issue comment "$ISSUE_NUMBER" --body "PR を更新しました。"
+            exit 0
+          fi
+
+          {
+            echo "Closes #${ISSUE_NUMBER}"
+            echo
+            echo "| | |"
+            echo "|---|---|"
+            echo "| 数値ID | \`${ACC_ID}\` |"
+            echo "| username | @${ACC_USERNAME} |"
+            echo "| 証拠件数 | ${EVIDENCE_COUNT} |"
+            echo "| 報告者 | @${ISSUE_USER} |"
+            echo
+            echo "### 自動検証済み"
+            echo
+            echo "- ✅ \`@${ACC_USERNAME}\` から数値ID \`${ACC_ID}\` を解決"
+            echo "- ✅ 全ての証拠ツイートの投稿者が \`${ACC_ID}\` と一致"
+            echo "- ✅ スキーマ検証を通過"
+            echo
+            echo "### レビュー時の確認事項"
+            echo
+            echo "- [ ] カテゴリが [POLICY.md](../blob/main/POLICY.md) の定義に実際に該当するか"
+            echo "- [ ] 常習性の要件を満たすか（\`ai-hype\` / \`ai-slop\` / \`engagement-farming\`）"
+            echo "- [ ] 私怨・意見の不一致による報告ではないか"
+            echo "- [ ] 個人情報・人格攻撃が含まれていないか"
+            echo
+            echo "> このPRは \`GITHUB_TOKEN\` により作成されているため \`validate.yml\` は起動しません。"
+            echo "> 同等の検証は変換時に実施済みです。"
+          } > pr-body.md
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "${action}: @${ACC_USERNAME} (id=${ACC_ID})" \
+            --body-file pr-body.md \
+            --label report
+
+          gh issue comment "$ISSUE_NUMBER" --body "検証を通過し、PR を作成しました。メンテナのレビューをお待ちください。"

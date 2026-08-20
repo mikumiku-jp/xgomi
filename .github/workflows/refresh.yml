@@ -1,0 +1,77 @@
+name: refresh
+
+# 掲載アカウントの改名・凍結を追跡する。
+# 証拠ツイートから「現在の」ハンドルを逆引きできるため、
+# 改名されても数値ID を軸に追跡が継続できる。
+
+on:
+  schedule:
+    - cron: "17 18 * * *" # 毎日 03:17 JST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+
+      - name: 現状を確認
+        id: refresh
+        run: node scripts/refresh.mjs
+
+      - name: 差分があれば PR を作成
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CHANGE_COUNT: ${{ steps.refresh.outputs.change_count }}
+          SUMMARY: ${{ steps.refresh.outputs.summary }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- accounts/; then
+            echo "更新はありません。"
+            exit 0
+          fi
+
+          branch="refresh/$(date -u +%Y-%m-%d)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add accounts/
+          git commit -m "chore: アカウント状態を更新（変更 ${CHANGE_COUNT} 件）"
+          git push --force origin "$branch"
+
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            echo "既存の PR を更新しました。"
+            exit 0
+          fi
+
+          {
+            echo "定期実行により、掲載アカウントの状態を更新しました。"
+            echo
+            echo "### 検知した変更"
+            echo
+            echo '```'
+            echo "${SUMMARY:-なし}"
+            echo '```'
+            echo
+            echo "改名は証拠ツイートから現在のハンドルを逆引きして追跡しています。"
+            echo "\`status: suspended\` は凍結・削除の疑いです（誤判定の可能性があるため要確認）。"
+          } > pr-body.md
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore: アカウント状態の定期更新" \
+            --body-file pr-body.md \
+            --label automated

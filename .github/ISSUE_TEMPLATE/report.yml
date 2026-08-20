@@ -1,0 +1,84 @@
+name: アカウントを報告する
+description: AI生成スパム / AI驚き屋アカウントの掲載を提案します
+title: "[report] @"
+labels: ["report"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        送信前に [POLICY.md](../blob/main/POLICY.md) の掲載基準を確認してください。
+
+        **証拠ツイートは必須です。** 送信すると自動で以下が実行されます。
+
+        1. `@handle` から数値ID を解決
+        2. 証拠ツイートの投稿者が本人か照合
+        3. 問題なければ PR を自動作成
+
+        照合に失敗した場合は、このIssueに理由がコメントされます。
+
+  - type: input
+    id: account
+    attributes:
+      label: 対象アカウント
+      description: "`@handle` または プロフィールURL。数値IDは自動で解決するので不要です。"
+      placeholder: "@example  または  https://x.com/example"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: categories
+    attributes:
+      label: カテゴリ
+      description: |
+        該当するものをすべて選択（定義は [POLICY.md](../blob/main/POLICY.md) 参照）
+        `ai-hype` 驚き屋 / `ai-slop` AI生成の粗製濫造 / `undisclosed-ai` AI生成の秘匿 /
+        `misinformation` 誤情報 / `fake-demo` 捏造デモ / `plagiarism` 無断転載 /
+        `engagement-farming` インプレ稼ぎ / `undisclosed-promo` ステマ / `scam` 詐欺
+      multiple: true
+      options:
+        - ai-hype
+        - ai-slop
+        - undisclosed-ai
+        - misinformation
+        - fake-demo
+        - plagiarism
+        - engagement-farming
+        - undisclosed-promo
+        - scam
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 証拠ツイートURL
+      description: |
+        1行に1件。**対象アカウント本人の投稿** である必要があります（自動照合されます）。
+        `ai-hype` `ai-slop` `engagement-farming` は常習性が要件なので2件以上を推奨します。
+      placeholder: |
+        https://x.com/example/status/1234567890123456789
+        https://x.com/example/status/9876543210987654321
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: note
+    attributes:
+      label: 補足
+      description: |
+        何が問題なのかを客観的に説明してください。
+        **人格攻撃・個人情報は書かないでください**（CIが検出したら却下されます）。
+      placeholder: 存在しない機能を「実装した」と主張し、デモ動画も生成物だった
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 確認
+      options:
+        - label: POLICY.md を読み、掲載基準に該当することを確認しました
+          required: true
+        - label: 個人情報・人格攻撃を含めていません
+          required: true
+        - label: 私怨や意見の不一致を理由とした報告ではありません
+          required: true

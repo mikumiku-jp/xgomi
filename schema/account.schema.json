@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/mikumiku-jp/xgomi/blob/main/schema/account.schema.json",
+  "title": "xgomi account entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "username", "categories", "evidence", "added_at", "updated_at"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "エディタ補完用。値は ../schema/account.schema.json"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9]{1,25}$",
+      "description": "X の数値ユーザーID (rest_id)。不変。ファイル名と一致させること。"
+    },
+    "username": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_]{1,15}$",
+      "description": "登録時点の @handle（@ は含めない）。変更されうるので参考値。"
+    },
+    "display_name": {
+      "type": "string",
+      "maxLength": 100,
+      "description": "登録時点の表示名。任意。"
+    },
+    "categories": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "ai-hype",
+          "ai-slop",
+          "undisclosed-ai",
+          "misinformation",
+          "fake-demo",
+          "plagiarism",
+          "engagement-farming",
+          "undisclosed-promo",
+          "scam"
+        ]
+      },
+      "description": "該当する行為カテゴリ。POLICY.md の定義に従う。"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "default": "medium",
+      "description": "low=散発的 / medium=常習 / high=詐欺・実害あり"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "description": "証拠ツイート。最低1件必須。投稿者が id と一致することを CI が検証する。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "pattern": "^https://(x|twitter)\\.com/[A-Za-z0-9_]{1,15}/status/[0-9]{1,25}$",
+            "description": "証拠ツイートの正規URL"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "何が問題なのかの客観的説明"
+          },
+          "archive_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "web.archive.org / archive.today などの魚拓。削除対策に推奨。"
+          }
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "補足。行為の説明のみ。人格攻撃・個人情報は禁止。"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["listed", "username-changed", "suspended", "deleted", "delisted"],
+      "default": "listed",
+      "description": "listed=掲載中 / delisted=異議申立て等により掲載解除（履歴として残す）"
+    },
+    "username_history": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9_]{1,15}$" },
+      "uniqueItems": true,
+      "description": "過去に観測した @handle。refresh により自動追記。"
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "description": "関連する議論・まとめ記事など"
+    },
+    "added_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "last_checked_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "refresh ワークフローが自動更新"
+    }
+  }
+}

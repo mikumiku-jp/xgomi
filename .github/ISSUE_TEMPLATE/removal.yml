@@ -1,0 +1,62 @@
+name: 掲載解除をリクエストする
+description: 誤った掲載の訂正・削除を申請します（本人・第三者どちらでも可）
+title: "[removal] @"
+labels: ["removal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        誤りがあれば掲載を解除します。証拠を伴わない掲載や人違いは、このリストにとっても害です。
+
+        **該当する投稿を削除し、同様の投稿を継続していない場合も掲載解除の対象です。**
+        やり直しを妨げることは目的ではありません。
+
+  - type: input
+    id: account
+    attributes:
+      label: 対象アカウント
+      description: "`@handle`、プロフィールURL、または `accounts/` 内の数値ID"
+      placeholder: "@example  /  1234567890"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: reason
+    attributes:
+      label: 申請理由
+      options:
+        - 人違い・IDの取り違え
+        - 証拠ツイートが本人のものではない
+        - カテゴリの定義に該当しない
+        - 該当投稿を削除し、現在は継続していない
+        - 掲載内容に個人情報・人格攻撃が含まれている
+        - その他
+    validations:
+      required: true
+
+  - type: textarea
+    id: detail
+    attributes:
+      label: 詳細
+      description: |
+        なぜ掲載が誤りなのかを説明してください。
+        反証となる資料（投稿URL等）があれば添えてください。
+    validations:
+      required: true
+
+  - type: dropdown
+    id: relationship
+    attributes:
+      label: 申請者の立場
+      options:
+        - 掲載された本人
+        - 第三者
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        > [!NOTE]
+        > 本人確認は求めません。申請内容そのものを検証して判断します。
+        > 身元を示す情報をこのIssueに書かないでください。

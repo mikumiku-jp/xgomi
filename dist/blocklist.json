@@ -3,8 +3,8 @@
   "description": "X上のスパムや低品質アカウントのコミュニティ管理リスト",
   "homepage": "https://github.com/mikumiku-jp/xgomi",
   "license": "CC0-1.0",
-  "generated_at": "2026-08-20T06:41:11.268Z",
-  "count": 1,
+  "generated_at": "2026-08-20T06:43:19.088Z",
+  "count": 2,
   "accounts": [
     {
       "id": "1646160030352257025",
@@ -24,6 +24,25 @@
         }
       ],
       "note": "よくある情報商材、AI驚き屋",
+      "status": "listed",
+      "added_at": "2026-08-20",
+      "updated_at": "2026-08-20"
+    },
+    {
+      "id": "2055498747644465152",
+      "username": "trendtech33566",
+      "display_name": "GitHub AI Projects Community 🇯🇵",
+      "categories": [
+        "ai-hype",
+        "engagement-farming"
+      ],
+      "severity": "medium",
+      "evidence": [
+        {
+          "url": "https://x.com/trendtech33566/status/2090205346723996043"
+        }
+      ],
+      "note": "海外のバズったgithubrepoを紹介してインプ稼ぎ",
       "status": "listed",
       "added_at": "2026-08-20",
       "updated_at": "2026-08-20"

@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - "accounts/**"
-      - "scripts/build.mjs"
+      # 検証・生成に関わるものが変わったら、dist が同じでも一度回す
+      - "scripts/**"
+      - "schema/**"
   workflow_dispatch:
 
 permissions:

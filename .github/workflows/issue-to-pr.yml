@@ -15,7 +15,11 @@ concurrency:
 
 jobs:
   convert:
-    if: contains(github.event.issue.labels.*.name, 'report')
+    # 自分でタイトルを書き換えた分の edited イベントで再実行しないよう、
+    # ボット起因の編集は無視する
+    if: >-
+      contains(github.event.issue.labels.*.name, 'report') &&
+      github.event.sender.login != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,6 +59,21 @@ jobs:
           } > comment.md
           gh issue comment "$ISSUE_NUMBER" --body-file comment.md
           exit 1
+
+      - name: Issue のタイトルを付ける
+        if: steps.convert.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ACC_ID: ${{ steps.convert.outputs.id }}
+          ACC_USERNAME: ${{ steps.convert.outputs.username }}
+        run: |
+          set -euo pipefail
+          want="[report] @${ACC_USERNAME} (id=${ACC_ID})"
+          if [ "$ISSUE_TITLE" != "$want" ]; then
+            gh issue edit "$ISSUE_NUMBER" --title "$want"
+          fi
 
       - name: PR を作成 / 更新
         if: steps.convert.outputs.ok == 'true'
@@ -113,7 +132,7 @@ jobs:
             echo "### レビュー時の確認事項"
             echo
             echo "- [ ] カテゴリが [POLICY.md](../blob/main/POLICY.md) の定義に実際に該当するか"
-            echo "- [ ] 常習性の要件を満たすか（\`ai-hype\` / \`ai-slop\` / \`engagement-farming\`）"
+            echo "- [ ] 反復していると言えるか（\`scam\` \`fake-demo\` \`impersonation\` 以外は反復が要件）"
             echo "- [ ] 私怨・意見の不一致による報告ではないか"
             echo "- [ ] 個人情報・人格攻撃が含まれていないか"
           } > pr-body.md

@@ -20,7 +20,7 @@ import {
   sleep,
 } from "./lib/x.mjs";
 import { validateAccount, CATEGORIES } from "./lib/validate-core.mjs";
-import { parseIssueForm } from "./lib/issue-form.mjs";
+import { parseIssueForm, parseCheckboxes } from "./lib/issue-form.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ACCOUNTS_DIR = path.join(ROOT, "accounts");
@@ -37,7 +37,9 @@ const fail = (msg) => {
 async function resolveTarget(target, tweetIds) {
   const byHandle = async (handle) => {
     const u = await userByScreenName(handle).catch((e) =>
-      fail(`X への問い合わせに失敗しました: ${e.message}\n時間をおいて再度お試しください。`),
+      fail(
+        `X への問い合わせに失敗しました: ${e.message}\n時間をおいて再度お試しください。`,
+      ),
     );
     return u;
   };
@@ -91,6 +93,22 @@ async function main() {
 
   const s = parseIssueForm(body);
 
+  // --- 確認欄 ---
+  // フォーム送信時にしか効かないので、ここでも見る。
+  // 送信後に本文を編集してチェックを外す / フォームを通さず立てる、が塞げる。
+  const confirms = parseCheckboxes(s["確認"] ?? "");
+  if (confirms.length === 0) {
+    fail(
+      "確認欄がありません。報告フォームから作成してください:\nhttps://github.com/mikumiku-jp/xgomi/issues/new?template=1-report.yml",
+    );
+  }
+  const unchecked = confirms.filter((c) => !c.checked);
+  if (unchecked.length > 0) {
+    fail(
+      `確認欄にチェックが入っていない項目があります:\n${unchecked.map((c) => `- ${c.label}`).join("\n")}\n\nすべての項目に同意できない報告は受け付けていません。`,
+    );
+  }
+
   // --- 対象アカウント ---
   const rawAccount = s["対象アカウント"] ?? "";
   const target = classifyAccountInput(rawAccount);
@@ -123,21 +141,24 @@ async function main() {
   if (evidenceUrls.length === 0)
     fail("証拠ツイートURLが1件も記入されていません。");
 
-  const badUrls = evidenceUrls.filter((u) => !parseTweetUrl(u));
-  if (badUrls.length > 0) {
-    fail(
-      `次のURLを解釈できませんでした:\n${badUrls.map((u) => `- \`${u}\``).join("\n")}\n\n\`https://x.com/<user>/status/<数字>\` の形式にしてください。`,
-    );
-  }
-
   // 同じツイートが別の書き方（ミラーや ?s=20 付き）で並んでいることがある
   const uniqueTweets = [];
   const seenTweetIds = new Set();
+  const unreadable = [];
   for (const u of evidenceUrls) {
-    const { tweetId } = parseTweetUrl(u);
-    if (seenTweetIds.has(tweetId)) continue;
-    seenTweetIds.add(tweetId);
-    uniqueTweets.push(tweetId);
+    const parsed = parseTweetUrl(u);
+    if (!parsed) {
+      unreadable.push(u);
+      continue;
+    }
+    if (seenTweetIds.has(parsed.tweetId)) continue;
+    seenTweetIds.add(parsed.tweetId);
+    uniqueTweets.push(parsed.tweetId);
+  }
+  if (unreadable.length > 0) {
+    fail(
+      `証拠ツイートURLのうち ${unreadable.length} 行を読み取れませんでした:\n${unreadable.map((u) => `- ${u}`).join("\n")}\n\n1行に1件、https://x.com/<ユーザー名>/status/<数字> の形式で記入してください。`,
+    );
   }
 
   // --- 対象アカウントを確定 ---
@@ -148,40 +169,40 @@ async function main() {
     );
   }
 
-  // --- 証拠ツイートの投稿者が本人か照合 ---
-  const evidence = [];
-  const mismatches = [];
-  const unavailable = [];
+  // --- 証拠ツイートの照合 ---
+  // 1件でも通らなければ報告全体を差し戻す。一部だけ採用すると、報告者が
+  // 挙げたつもりの根拠と掲載内容が食い違う。
+  const verified = [];
+  const rejected = [];
   for (const tweetId of uniqueTweets) {
     const tweet = await tweetById(tweetId).catch(() => null);
     await sleep(400);
 
     if (!tweet) {
-      unavailable.push(`https://x.com/i/status/${tweetId}`);
-      continue;
-    }
-    if (tweet.authorId !== user.id) {
-      mismatches.push(
-        `- \`https://x.com/${tweet.authorUsername}/status/${tweetId}\` の投稿者は @${tweet.authorUsername} (id=${tweet.authorId}) です`,
+      rejected.push(
+        `- https://x.com/i/status/${tweetId} — 取得できません（削除済み・非公開・凍結）`,
       );
-      continue;
+    } else if (tweet.authorId !== user.id) {
+      rejected.push(
+        `- https://x.com/${tweet.authorUsername}/status/${tweetId} — 投稿者が @${tweet.authorUsername} です`,
+      );
+    } else {
+      verified.push(`https://x.com/${tweet.authorUsername}/status/${tweetId}`);
     }
-    const url = `https://x.com/${tweet.authorUsername}/status/${tweetId}`;
-    // 投稿を消されても検証できるよう、この時点で魚拓を押さえておく。
-    // 失敗しても報告自体は通す（後で archive ワークフローが拾う）
-    const archived = await archiveUrl(url);
-    evidence.push(archived ? { url, archive_url: archived } : { url });
   }
 
-  if (mismatches.length > 0) {
+  if (rejected.length > 0) {
     fail(
-      `証拠ツイートの投稿者が対象アカウント（@${user.username} / id=${user.id}）と一致しません:\n${mismatches.join("\n")}`,
+      `証拠ツイート ${uniqueTweets.length} 件のうち ${rejected.length} 件が使えません（対象は @${user.username} / id=${user.id}）:\n${rejected.join("\n")}\n\n該当の行を取り除くか、正しいURLに直して本文を編集してください。\n削除済みの投稿を根拠にしたい場合は、魚拓URLを添えて手動でPRを送ってください（CONTRIBUTING.md）。`,
     );
   }
-  if (evidence.length === 0) {
-    fail(
-      `証拠ツイートを1件も取得できませんでした（削除済み・非公開の可能性）:\n${unavailable.map((u) => `- \`${u}\``).join("\n")}\n\n魚拓URLを添えて手動でPRを送ってください。`,
-    );
+
+  // 投稿を消されても検証できるよう、この時点で魚拓を押さえておく。
+  // 失敗しても報告自体は通す（後で archive ワークフローが拾う）
+  const evidence = [];
+  for (const url of verified) {
+    const archived = await archiveUrl(url);
+    evidence.push(archived ? { url, archive_url: archived } : { url });
   }
 
   // --- 既存エントリとのマージ ---
@@ -248,9 +269,6 @@ async function main() {
     `evidence_added=${evidence.length}`,
   ];
   console.log(summary.join(" "));
-  if (unavailable.length > 0) {
-    console.log(`取得できなかったURL（スキップ）: ${unavailable.join(", ")}`);
-  }
 
   if (process.env.GITHUB_OUTPUT) {
     appendFileSync(

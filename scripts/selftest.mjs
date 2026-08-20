@@ -18,9 +18,11 @@ import {
 import {
   validateAccount,
   CATEGORIES,
+  ONE_OFF_CATEGORIES,
   STATUSES,
   SEVERITIES,
 } from "./lib/validate-core.mjs";
+import { parseIssueForm, parseCheckboxes } from "./lib/issue-form.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 
@@ -74,6 +76,39 @@ check(
   ),
 );
 
+// カテゴリは4か所に書かれている。どれか一つだけ追加して気づかない、を止める。
+// （報告フォームにないカテゴリは誰も選べないし、
+// 　POLICY.md に定義がないカテゴリは掲載の根拠にならない）
+const sorted = (a) => [...a].sort();
+
+const reportForm = await readFile(
+  path.join(ROOT, ".github/ISSUE_TEMPLATE/1-report.yml"),
+  "utf8",
+);
+const formCategories = (
+  reportForm.match(/^ {6}options:\n((?:^ {8}- [a-z-]+\n)+)/m)?.[1] ?? ""
+)
+  .trim()
+  .split("\n")
+  .map((l) => l.replace(/^\s*-\s*/, ""));
+eq("報告フォームのカテゴリ一覧が一致", sorted(formCategories), sorted(CATEGORIES));
+
+const policy = await readFile(path.join(ROOT, "POLICY.md"), "utf8");
+const policyCategories = [...policy.matchAll(/^\| `([a-z-]+)` \|/gm)].map(
+  (m) => m[1],
+);
+eq(
+  "POLICY.md のカテゴリ表が一致",
+  sorted(policyCategories),
+  sorted(CATEGORIES),
+);
+
+check(
+  "単発でも掲載可なカテゴリは実在する",
+  ONE_OFF_CATEGORIES.every((c) => CATEGORIES.includes(c)),
+  `不明: ${ONE_OFF_CATEGORIES.filter((c) => !CATEGORIES.includes(c)).join(", ")}`,
+);
+
 // --------------------------------------------------------------------------
 // 2. URL の解釈
 // --------------------------------------------------------------------------
@@ -92,7 +127,11 @@ for (const [input, expected] of [
   ["", null],
   [null, null],
 ]) {
-  eq(`parseTweetUrl(${JSON.stringify(input)})`, parseTweetUrl(input)?.canonical ?? null, expected);
+  eq(
+    `parseTweetUrl(${JSON.stringify(input)})`,
+    parseTweetUrl(input)?.canonical ?? null,
+    expected,
+  );
 }
 check("正規形の判定", isCanonicalTweetUrl(canonical));
 check("非正規形の判定", !isCanonicalTweetUrl(`${canonical}?s=20`));
@@ -114,10 +153,11 @@ for (const [input, kind, value] of [
   ["", "invalid", undefined],
 ]) {
   const c = classifyAccountInput(input);
-  eq(`classifyAccountInput(${JSON.stringify(input)})`, [c.kind, c.value], [
-    kind,
-    value,
-  ]);
+  eq(
+    `classifyAccountInput(${JSON.stringify(input)})`,
+    [c.kind, c.value],
+    [kind, value],
+  );
 }
 
 // --------------------------------------------------------------------------
@@ -137,10 +177,16 @@ const warns = (patch) =>
   validateAccount({ ...base, ...patch }, { filename: "12.json" }).warnings;
 
 eq("正常なデータは通る", errs({}), []);
-check("ファイル名の不一致を弾く", validateAccount(base, { filename: "13.json" }).errors.length === 1);
+check(
+  "ファイル名の不一致を弾く",
+  validateAccount(base, { filename: "13.json" }).errors.length === 1,
+);
 check("未知のカテゴリを弾く", errs({ categories: ["nope"] }).length > 0);
 check("カテゴリ空を弾く", errs({ categories: [] }).length > 0);
-check("カテゴリ重複を弾く", errs({ categories: ["ai-slop", "ai-slop"] }).length > 0);
+check(
+  "カテゴリ重複を弾く",
+  errs({ categories: ["ai-slop", "ai-slop"] }).length > 0,
+);
 check("未知のフィールドを弾く", errs({ hoge: 1 }).length > 0);
 check("証拠なしを弾く", errs({ evidence: [] }).length > 0);
 check(
@@ -152,13 +198,20 @@ check(
   errs({ evidence: [{ url: canonical }, { url: canonical }] }).length > 0,
 );
 check("日付形式を弾く", errs({ added_at: "2026/01/01" }).length > 0);
-check("15文字超のusernameを弾く", errs({ username: "a".repeat(16) }).length > 0);
+check(
+  "15文字超のusernameを弾く",
+  errs({ username: "a".repeat(16) }).length > 0,
+);
 check("不正なstatusを弾く", errs({ status: "unknown" }).length > 0);
-check("メールアドレスを弾く", errs({ note: "連絡先 foo@example.com" }).length > 0);
+check(
+  "メールアドレスを弾く",
+  errs({ note: "連絡先 foo@example.com" }).length > 0,
+);
 check("電話番号を弾く", errs({ note: "090-1234-5678" }).length > 0);
 check(
   "unavailable_since の形式を弾く",
-  errs({ evidence: [{ url: canonical, unavailable_since: "きのう" }] }).length > 0,
+  errs({ evidence: [{ url: canonical, unavailable_since: "きのう" }] }).length >
+    0,
 );
 check(
   "証拠が全滅かつ魚拓なしを警告",
@@ -182,6 +235,59 @@ check(
   "掲載解除の理由なしを警告",
   warns({ status: "delisted" }).some((w) => w.includes("delisted_reason")),
 );
+
+// --------------------------------------------------------------------------
+// 5. Issue Form の本文の読み取り
+// --------------------------------------------------------------------------
+
+// `render: text` を付けた項目は、本文ではコードブロックに包まれて出てくる。
+// 囲いを剥がさないと ``` の行をURLとして読んでしまう（issue #2 で発生）
+const renderedForm = parseIssueForm(
+  [
+    "### 対象アカウント",
+    "",
+    "https://x.com/example",
+    "",
+    "### 証拠ツイートURL",
+    "",
+    "```text",
+    "https://x.com/example/status/1234567890123456789",
+    "https://x.com/example/status/9876543210987654321",
+    "```",
+    "",
+    "### 補足",
+    "",
+    "_No response_",
+  ].join("\n"),
+);
+eq(
+  "render: text のコードブロックを剥がす",
+  renderedForm["証拠ツイートURL"].split("\n"),
+  [
+    "https://x.com/example/status/1234567890123456789",
+    "https://x.com/example/status/9876543210987654321",
+  ],
+);
+eq("未記入は空文字", renderedForm["補足"], "");
+
+// 本文の途中に出てくるコードブロックまで壊さない
+eq(
+  "項目全体を包んでいないコードブロックには触らない",
+  parseIssueForm("### 補足\n\n以下のように主張していました:\n\n```\n嘘\n```")["補足"],
+  "以下のように主張していました:\n\n```\n嘘\n```",
+);
+
+eq(
+  "チェックボックスの状態を読む",
+  parseCheckboxes("- [X] 読んだ\n- [ ] 含めていない\n- [x] 私怨ではない"),
+  [
+    { checked: true, label: "読んだ" },
+    { checked: false, label: "含めていない" },
+    { checked: true, label: "私怨ではない" },
+  ],
+);
+eq("チェックボックスがなければ空", parseCheckboxes("ただの文章"), []);
+eq("未記入の確認欄は空", parseCheckboxes(""), []);
 
 // --------------------------------------------------------------------------
 if (failed > 0) {

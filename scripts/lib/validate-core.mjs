@@ -1,18 +1,34 @@
 // スキーマ検証（依存パッケージなし）。schema/account.schema.json と定義を揃えること。
 import { parseTweetUrl } from "./x.mjs";
 
+// POLICY.md の掲載カテゴリ表と同じ順・同じ面々に保つこと。
 export const CATEGORIES = [
+  // AI関連
   "ai-hype",
   "ai-slop",
   "undisclosed-ai",
-  "misinformation",
   "fake-demo",
+  // 転載・なりすまし
   "plagiarism",
-  "engagement-farming",
-  "undisclosed-promo",
+  "content-farm",
+  "impersonation",
+  // 収益誘導
+  "affiliate-spam",
   "info-product",
+  "undisclosed-promo",
   "scam",
+  // インプレ稼ぎ・攒乱
+  "engagement-farming",
+  "rage-bait",
+  "bot-automation",
+  "adult-spam",
+  // その他
+  "misinformation",
 ];
+
+// 実害が大きく、単発でも掲載対象になり得るもの。
+// これ以外は「反復していること」が要件。
+export const ONE_OFF_CATEGORIES = ["scam", "fake-demo", "impersonation"];
 
 export const STATUSES = [
   "listed",
@@ -223,8 +239,13 @@ export function validateAccount(data, { filename } = {}) {
 
   // --- warnings ---
   if (Array.isArray(data.evidence) && data.evidence.length === 1) {
+    const needsPattern = (
+      Array.isArray(data.categories) ? data.categories : []
+    ).filter((c) => CATEGORIES.includes(c) && !ONE_OFF_CATEGORIES.includes(c));
     warnings.push(
-      "証拠が1件のみです。2件以上あると常習性の判断が容易になります。",
+      needsPattern.length > 0
+        ? `証拠が1件のみです。${needsPattern.join(" / ")} は反復していることが要件なので、2件以上を強く推奨します。`
+        : "証拠が1件のみです。2件以上あると判断が容易になります。",
     );
   }
   if (

@@ -1,6 +1,7 @@
 name: アカウントを報告する
-description: AI生成スパム / AI驚き屋アカウントの掲載を提案します
-title: "[report] @"
+description: スパム・低品質アカウントの掲載を提案します
+# 内容を確認したあとで自動的に付け直すので、入力させない
+title: "[report] "
 labels: ["report"]
 body:
   - type: markdown
@@ -10,6 +11,8 @@ body:
 
         **証拠ツイートは必須です。**
         内容に問題があれば、このIssueに理由をコメントします。本文を直せば再確認されます。
+
+        タイトルは自動で付くので、そのまま送信してかまいません。
 
   - type: input
     id: account
@@ -26,22 +29,30 @@ body:
       label: カテゴリ
       description: |
         該当するものをすべて選択（定義は [POLICY.md](../blob/main/POLICY.md) 参照）
-        `ai-hype` 驚き屋 / `ai-slop` AI生成の粗製濫造 / `undisclosed-ai` AI生成の秘匿 /
-        `misinformation` 誤情報 / `fake-demo` 捏造デモ / `plagiarism` 無断転載 /
-        `engagement-farming` インプレ稼ぎ / `undisclosed-promo` ステマ /
-        `info-product` 情報商材 / `scam` 詐欺
+
+        - **AI関連** — `ai-hype` 驚き屋 / `ai-slop` AI生成の粗製濫造 / `undisclosed-ai` AI生成の秘匿 / `fake-demo` 捏造デモ
+        - **転載・なりすまし** — `plagiarism` 無断転載 / `content-farm` 無断転載まとめへの誘導 / `impersonation` なりすまし
+        - **収益誘導** — `affiliate-spam` アフィリエイト誘導 / `info-product` 情報商材 / `undisclosed-promo` ステマ / `scam` 詐欺
+        - **インプレ稼ぎ・攪乱** — `engagement-farming` インプレ稼ぎ / `rage-bait` 対立煽り / `bot-automation` bot・自動投稿 / `adult-spam` アダルト誘導
+        - **その他** — `misinformation` 誤情報
       multiple: true
       options:
         - ai-hype
         - ai-slop
         - undisclosed-ai
-        - misinformation
         - fake-demo
         - plagiarism
-        - engagement-farming
-        - undisclosed-promo
+        - content-farm
+        - impersonation
+        - affiliate-spam
         - info-product
+        - undisclosed-promo
         - scam
+        - engagement-farming
+        - rage-bait
+        - bot-automation
+        - adult-spam
+        - misinformation
     validations:
       required: true
 
@@ -51,7 +62,7 @@ body:
       label: 証拠ツイートURL
       description: |
         1行に1件。**対象アカウント本人の投稿** にかぎります。
-        `ai-hype` `ai-slop` `engagement-farming` は常習性が要件なので2件以上を推奨します。
+        `scam` `fake-demo` `impersonation` 以外は反復が要件なので、2件以上を推奨します。
       placeholder: |
         https://x.com/example/status/1234567890123456789
         https://x.com/example/status/9876543210987654321

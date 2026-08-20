@@ -50,7 +50,7 @@ async function main() {
   const generatedAt = new Date().toISOString();
   const meta = {
     name: "xgomi",
-    description: "AI生成スパム・AI驚き屋アカウントのコミュニティ管理リスト",
+    description: "X上のスパム・低品質アカウントのコミュニティ管理リスト",
     homepage: "https://github.com/mikumiku-jp/xgomi",
     license: "CC0-1.0",
     generated_at: generatedAt,

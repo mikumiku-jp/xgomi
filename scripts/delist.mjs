@@ -30,12 +30,16 @@ async function main() {
     );
   }
   if (reason.length > 300) {
-    fail(`解除理由が長すぎます（${reason.length}文字）。300文字以内にしてください。`);
+    fail(
+      `解除理由が長すぎます（${reason.length}文字）。300文字以内にしてください。`,
+    );
   }
 
   const target = classifyAccountInput(rawTarget);
   if (target.kind === "invalid") {
-    fail(`対象アカウントを解釈できませんでした: \`${rawTarget}\`\n${target.reason}`);
+    fail(
+      `対象アカウントを解釈できませんでした: \`${rawTarget}\`\n${target.reason}`,
+    );
   }
 
   const files = (await readdir(ACCOUNTS_DIR).catch(() => [])).filter((f) =>

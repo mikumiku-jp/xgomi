@@ -4,7 +4,14 @@
   "title": "xgomi account entry",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "username", "categories", "evidence", "added_at", "updated_at"],
+  "required": [
+    "id",
+    "username",
+    "categories",
+    "evidence",
+    "added_at",
+    "updated_at"
+  ],
   "properties": {
     "$schema": {
       "type": "string",
@@ -35,20 +42,30 @@
           "ai-hype",
           "ai-slop",
           "undisclosed-ai",
-          "misinformation",
           "fake-demo",
           "plagiarism",
-          "engagement-farming",
-          "undisclosed-promo",
+          "content-farm",
+          "impersonation",
+          "affiliate-spam",
           "info-product",
-          "scam"
+          "undisclosed-promo",
+          "scam",
+          "engagement-farming",
+          "rage-bait",
+          "bot-automation",
+          "adult-spam",
+          "misinformation"
         ]
       },
       "description": "当てはまる行為。POLICY.md の定義から選びます。"
     },
     "severity": {
       "type": "string",
-      "enum": ["low", "medium", "high"],
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
       "default": "medium",
       "description": "low=散発的 / medium=常習 / high=詐欺・実害あり"
     },
@@ -59,7 +76,9 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["url"],
+        "required": [
+          "url"
+        ],
         "properties": {
           "url": {
             "type": "string",
@@ -91,7 +110,13 @@
     },
     "status": {
       "type": "string",
-      "enum": ["listed", "username-changed", "suspended", "deleted", "delisted"],
+      "enum": [
+        "listed",
+        "username-changed",
+        "suspended",
+        "deleted",
+        "delisted"
+      ],
       "default": "listed",
       "description": "listed=掲載中 / delisted=掲載解除。通常は書かなくて構いません。"
     },
@@ -102,13 +127,19 @@
     },
     "username_history": {
       "type": "array",
-      "items": { "type": "string", "pattern": "^[A-Za-z0-9_]{1,15}$" },
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_]{1,15}$"
+      },
       "uniqueItems": true,
       "description": "過去のユーザー名。書く必要はありません。"
     },
     "refs": {
       "type": "array",
-      "items": { "type": "string", "format": "uri" },
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
       "description": "関連する議論やまとめ記事のURL。"
     },
     "added_at": {

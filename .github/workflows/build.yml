@@ -1,50 +1,50 @@
 name: build
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "accounts/**"
-      # 検証・生成に関わるものが変わったら、dist が同じでも一度回す
-      - "scripts/**"
-      - "schema/**"
-  workflow_dispatch:
+    push:
+        branches: [main]
+        paths:
+            - "accounts/**"
+            # 検証・生成に関わるものが変わったら、dist が同じでも一度回す
+            - "scripts/**"
+            - "schema/**"
+    workflow_dispatch:
 
 permissions:
-  contents: write
+    contents: write
 
 concurrency:
-  group: build-dist
-  cancel-in-progress: false
+    group: build-dist
+    cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
+            - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+              with:
+                  node-version: "22"
 
-      - name: 自己テスト
-        run: node scripts/selftest.mjs
+            - name: 自己テスト
+              run: node scripts/selftest.mjs
 
-      - name: 検証
-        run: node scripts/validate.mjs
+            - name: 検証
+              run: node scripts/validate.mjs
 
-      - name: dist/ を生成
-        run: node scripts/build.mjs
+            - name: dist/ を生成
+              run: node scripts/build.mjs
 
-      - name: 変更があればコミット
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- dist/; then
-            echo "dist/ に変更はありません。"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add dist/
-          git commit -m "chore: dist/ を再生成 [skip ci]"
-          git push
+            - name: 変更があればコミット
+              run: |
+                  set -euo pipefail
+                  if git diff --quiet -- dist/; then
+                    echo "dist/ に変更はありません。"
+                    exit 0
+                  fi
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add dist/
+                  git commit -m "chore: dist/ を再生成 [skip ci]"
+                  git push

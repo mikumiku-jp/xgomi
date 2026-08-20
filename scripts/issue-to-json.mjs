@@ -44,7 +44,16 @@ async function main() {
   const rawAccount = s["対象アカウント"] ?? "";
   const handle = parseHandleInput(rawAccount);
   if (!handle) {
-    fail(`対象アカウントを解釈できませんでした: \`${rawAccount}\`\n\`@username\` または \`https://x.com/username\` の形式で記入してください。`);
+    // なぜ弾かれたのかを具体的に返す（単なる「形式エラー」だと利用者が原因を特定できない）
+    const bare = String(rawAccount).trim().replace(/^https?:\/\/(?:x|twitter)\.com\//i, "").replace(/^@/, "").split(/[/?#]/)[0];
+    let reason = "`@username` または `https://x.com/username` の形式で記入してください。";
+    if (bare.length > 15) {
+      reason = `\`${bare}\` は ${bare.length} 文字です。X のユーザー名は **15文字以内** なので、この時点で存在し得ません。綴りを確認してください。`;
+    } else if (/[^A-Za-z0-9_]/.test(bare)) {
+      const bad = [...new Set(bare.match(/[^A-Za-z0-9_]/g))].join(" ");
+      reason = `使用できない文字が含まれています: ${bad}\nX のユーザー名は半角英数字と \`_\` のみです（表示名ではなく @ から始まるハンドルを記入してください）。`;
+    }
+    fail(`対象アカウントを解釈できませんでした: \`${rawAccount}\`\n${reason}`);
   }
 
   // --- カテゴリ ---

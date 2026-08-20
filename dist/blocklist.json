@@ -3,7 +3,30 @@
   "description": "X上のスパム・低品質アカウントのコミュニティ管理リスト",
   "homepage": "https://github.com/mikumiku-jp/xgomi",
   "license": "CC0-1.0",
-  "generated_at": "2026-08-20T05:45:28.720Z",
-  "count": 0,
-  "accounts": []
+  "generated_at": "2026-08-20T05:58:24.640Z",
+  "count": 1,
+  "accounts": [
+    {
+      "id": "1646160030352257025",
+      "username": "cosmos_hzokujin",
+      "display_name": "こすもす｜AIで起業しろ",
+      "categories": [
+        "info-product",
+        "ai-hype"
+      ],
+      "severity": "medium",
+      "evidence": [
+        {
+          "url": "https://x.com/cosmos_hzokujin/status/2085680888247976295"
+        },
+        {
+          "url": "https://x.com/cosmos_hzokujin/status/2089607244342260123"
+        }
+      ],
+      "note": "よくある情報商材、AI驚き屋",
+      "status": "listed",
+      "added_at": "2026-08-20",
+      "updated_at": "2026-08-20"
+    }
+  ]
 }

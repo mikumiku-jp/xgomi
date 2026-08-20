@@ -1,9 +1,14 @@
 {
-  "generated_at": "2026-08-20T05:45:28.720Z",
-  "total": 0,
+  "generated_at": "2026-08-20T05:58:24.640Z",
+  "total": 1,
   "delisted": 0,
-  "evidence_total": 0,
-  "distributable_usernames": 0,
-  "by_category": {},
-  "by_severity": {}
+  "evidence_total": 2,
+  "distributable_usernames": 1,
+  "by_category": {
+    "info-product": 1,
+    "ai-hype": 1
+  },
+  "by_severity": {
+    "medium": 1
+  }
 }

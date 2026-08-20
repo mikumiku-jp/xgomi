@@ -26,7 +26,9 @@ async function listAccountFiles() {
       .filter((p) => p.startsWith(ACCOUNTS_DIR) && p.endsWith(".json"));
   }
   const entries = await readdir(ACCOUNTS_DIR).catch(() => []);
-  return entries.filter((f) => f.endsWith(".json")).map((f) => path.join(ACCOUNTS_DIR, f));
+  return entries
+    .filter((f) => f.endsWith(".json"))
+    .map((f) => path.join(ACCOUNTS_DIR, f));
 }
 
 /** 証拠ツイートの投稿者が本人かをネットワークで照合 */
@@ -43,13 +45,17 @@ async function verifyEvidence(data) {
     try {
       tweet = await tweetById(parsed.tweetId);
     } catch (e) {
-      warnings.push(`${ev.url} を取得できませんでした（${e.message}）。検証をスキップします。`);
+      warnings.push(
+        `${ev.url} を取得できませんでした（${e.message}）。検証をスキップします。`,
+      );
       continue;
     }
     await sleep(400); // レート制限に配慮
 
     if (!tweet) {
-      warnings.push(`${ev.url} は削除済み/非公開のようです。archive_url の追加を推奨します。`);
+      warnings.push(
+        `${ev.url} は削除済み/非公開のようです。archive_url の追加を推奨します。`,
+      );
       continue;
     }
     if (tweet.authorId !== data.id) {
@@ -64,7 +70,10 @@ async function verifyEvidence(data) {
   }
 
   // 生きている証拠ツイートから現在のハンドルが分かる → 改名検知
-  if (observedUsername && observedUsername.toLowerCase() !== String(data.username).toLowerCase()) {
+  if (
+    observedUsername &&
+    observedUsername.toLowerCase() !== String(data.username).toLowerCase()
+  ) {
     warnings.push(
       `username が変更されている可能性があります: 記録 "@${data.username}" → 現在 "@${observedUsername}"`,
     );
@@ -107,7 +116,9 @@ async function main() {
     if (typeof data.username === "string") {
       const key = data.username.toLowerCase();
       if (seenUsernames.has(key) && seenUsernames.get(key) !== data.id) {
-        warnings.push(`@${data.username} は ${seenUsernames.get(key)}.json にも登録されています`);
+        warnings.push(
+          `@${data.username} は ${seenUsernames.get(key)}.json にも登録されています`,
+        );
       }
       seenUsernames.set(key, data.id);
     }

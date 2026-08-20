@@ -13,7 +13,13 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { appendFileSync } from "node:fs";
 import path from "node:path";
-import { userByScreenName, tweetById, parseTweetUrl, today, sleep } from "./lib/x.mjs";
+import {
+  userByScreenName,
+  tweetById,
+  parseTweetUrl,
+  today,
+  sleep,
+} from "./lib/x.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const ACCOUNTS_DIR = path.join(ROOT, "accounts");
@@ -34,7 +40,9 @@ async function recoverUsernameFromEvidence(data) {
 }
 
 async function main() {
-  const files = (await readdir(ACCOUNTS_DIR).catch(() => [])).filter((f) => f.endsWith(".json")).sort();
+  const files = (await readdir(ACCOUNTS_DIR).catch(() => []))
+    .filter((f) => f.endsWith(".json"))
+    .sort();
 
   const changes = [];
   let checked = 0;
@@ -60,7 +68,9 @@ async function main() {
     try {
       resolved = await userByScreenName(data.username);
     } catch (e) {
-      console.error(`⚠ @${data.username}: 照会に失敗 (${e.message})。スキップします。`);
+      console.error(
+        `⚠ @${data.username}: 照会に失敗 (${e.message})。スキップします。`,
+      );
       continue;
     }
     await sleep(700);
@@ -75,19 +85,39 @@ async function main() {
       // ハンドルが本人のものでなくなった → 証拠ツイートから復元を試みる
       const recovered = await recoverUsernameFromEvidence(data);
 
-      if (recovered && recovered.toLowerCase() !== data.username.toLowerCase()) {
+      if (
+        recovered &&
+        recovered.toLowerCase() !== data.username.toLowerCase()
+      ) {
         const history = new Set(data.username_history ?? []);
         history.add(data.username);
         data.username_history = [...history];
         data.username = recovered;
         data.status = "listed";
-        changes.push(`🔄 id=${data.id}: @${prevUsername} → @${recovered}（改名を検知）`);
+        changes.push(
+          `🔄 id=${data.id}: @${prevUsername} → @${recovered}（改名を検知）`,
+        );
       } else if (recovered) {
         data.status = "listed";
+      } else if (resolved) {
+        // 記録しているハンドルが別人のものになっている。
+        // 現在のハンドルは不明なので、このハンドルを配布し続けると
+        // 無関係の人がブロックされる。
+        const history = new Set(data.username_history ?? []);
+        history.add(data.username);
+        data.username_history = [...history];
+        data.status = "username-changed";
+        if (prevStatus !== "username-changed") {
+          changes.push(
+            `⚠ id=${data.id}: @${prevUsername} は別人 (id=${resolved.id}) のアカウントになっています。現在のハンドルは不明のため、ユーザー名の配布を停止しました。`,
+          );
+        }
       } else {
         data.status = "suspended";
         if (prevStatus !== "suspended") {
-          changes.push(`🚫 id=${data.id} (@${data.username}): 凍結/削除の疑い。証拠ツイートも辿れません。`);
+          changes.push(
+            `🚫 id=${data.id} (@${data.username}): 凍結/削除の疑い。証拠ツイートも辿れません。`,
+          );
         }
       }
     }
@@ -116,7 +146,9 @@ async function main() {
         `checked=${checked}`,
         `change_count=${changes.length}`,
         `summary<<XGOMI_EOF`,
-        changes.length > 0 ? changes.join("\n") : "状態の変化はありませんでした。",
+        changes.length > 0
+          ? changes.join("\n")
+          : "状態の変化はありませんでした。",
         `XGOMI_EOF`,
       ].join("\n") + "\n",
     );

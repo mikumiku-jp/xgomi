@@ -13,7 +13,13 @@ export const CATEGORIES = [
   "scam",
 ];
 
-export const STATUSES = ["listed", "username-changed", "suspended", "deleted", "delisted"];
+export const STATUSES = [
+  "listed",
+  "username-changed",
+  "suspended",
+  "deleted",
+  "delisted",
+];
 export const SEVERITIES = ["low", "medium", "high"];
 
 const ALLOWED_KEYS = new Set([
@@ -63,18 +69,27 @@ export function validateAccount(data, { filename } = {}) {
 
   // --- id ---
   if (typeof data.id !== "string" || !RE_ID.test(data.id)) {
-    err(`id は数値文字列である必要があります（現在: ${JSON.stringify(data.id)}）`);
+    err(
+      `id は数値文字列である必要があります（現在: ${JSON.stringify(data.id)}）`,
+    );
   } else if (filename && filename !== `${data.id}.json`) {
-    err(`ファイル名は "${data.id}.json" である必要があります（現在: "${filename}"）`);
+    err(
+      `ファイル名は "${data.id}.json" である必要があります（現在: "${filename}"）`,
+    );
   }
 
   // --- username ---
   if (typeof data.username !== "string" || !RE_USERNAME.test(data.username)) {
-    err(`username が不正です（@ は含めない・英数字と_のみ・15文字以内）: ${JSON.stringify(data.username)}`);
+    err(
+      `username が不正です（@ は含めない・英数字と_のみ・15文字以内）: ${JSON.stringify(data.username)}`,
+    );
   }
 
   if (data.display_name !== undefined) {
-    if (typeof data.display_name !== "string" || data.display_name.length > 100) {
+    if (
+      typeof data.display_name !== "string" ||
+      data.display_name.length > 100
+    ) {
       err("display_name は100文字以内の文字列である必要があります");
     }
   }
@@ -119,12 +134,18 @@ export function validateAccount(data, { filename } = {}) {
       }
       const parsed = typeof ev.url === "string" ? parseTweetUrl(ev.url) : null;
       if (parsed) {
-        if (seenUrls.has(parsed.tweetId)) err(`${at}.url のツイートが重複しています`);
+        if (seenUrls.has(parsed.tweetId))
+          err(`${at}.url のツイートが重複しています`);
         seenUrls.add(parsed.tweetId);
       } else {
-        err(`${at}.url が不正です。https://x.com/<user>/status/<id> 形式にしてください（現在: ${JSON.stringify(ev.url)}）`);
+        err(
+          `${at}.url が不正です。https://x.com/<user>/status/<id> 形式にしてください（現在: ${JSON.stringify(ev.url)}）`,
+        );
       }
-      if (ev.note !== undefined && (typeof ev.note !== "string" || ev.note.length > 300)) {
+      if (
+        ev.note !== undefined &&
+        (typeof ev.note !== "string" || ev.note.length > 300)
+      ) {
         err(`${at}.note は300文字以内の文字列である必要があります`);
       }
     });
@@ -136,10 +157,15 @@ export function validateAccount(data, { filename } = {}) {
       err("note は1000文字以内の文字列である必要があります");
     }
   }
-  const freeText = [data.note ?? "", ...(data.evidence ?? []).map((e) => e?.note ?? "")].join("\n");
+  const freeText = [
+    data.note ?? "",
+    ...(data.evidence ?? []).map((e) => e?.note ?? ""),
+  ].join("\n");
   for (const { re, label } of PII_PATTERNS) {
     if (re.test(freeText)) {
-      err(`個人情報の可能性がある記述が含まれています（${label}）。POLICY.md 参照。`);
+      err(
+        `個人情報の可能性がある記述が含まれています（${label}）。POLICY.md 参照。`,
+      );
     }
   }
 
@@ -165,16 +191,26 @@ export function validateAccount(data, { filename } = {}) {
       err(`${key} は YYYY-MM-DD 形式で必須です`);
     }
   }
-  if (data.last_checked_at !== undefined && !RE_DATE.test(String(data.last_checked_at))) {
+  if (
+    data.last_checked_at !== undefined &&
+    !RE_DATE.test(String(data.last_checked_at))
+  ) {
     err("last_checked_at は YYYY-MM-DD 形式である必要があります");
   }
 
   // --- warnings ---
   if (Array.isArray(data.evidence) && data.evidence.length === 1) {
-    warnings.push("証拠が1件のみです。2件以上あると常習性の判断が容易になります。");
+    warnings.push(
+      "証拠が1件のみです。2件以上あると常習性の判断が容易になります。",
+    );
   }
-  if (Array.isArray(data.evidence) && !data.evidence.some((e) => e?.archive_url)) {
-    warnings.push("archive_url（魚拓）が未設定です。ツイート削除に備えて推奨します。");
+  if (
+    Array.isArray(data.evidence) &&
+    !data.evidence.some((e) => e?.archive_url)
+  ) {
+    warnings.push(
+      "archive_url（魚拓）が未設定です。ツイート削除に備えて推奨します。",
+    );
   }
 
   return { errors, warnings };

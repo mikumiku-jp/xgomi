@@ -14,7 +14,9 @@ const csvEscape = (v) => {
 };
 
 async function main() {
-  const files = (await readdir(ACCOUNTS_DIR).catch(() => [])).filter((f) => f.endsWith(".json")).sort();
+  const files = (await readdir(ACCOUNTS_DIR).catch(() => []))
+    .filter((f) => f.endsWith(".json"))
+    .sort();
 
   const accounts = [];
   for (const f of files) {
@@ -22,7 +24,9 @@ async function main() {
     try {
       accounts.push(JSON.parse(raw));
     } catch (e) {
-      throw new Error(`accounts/${f} を JSON として読めません: ${e.message}`, { cause: e });
+      throw new Error(`accounts/${f} を JSON として読めません: ${e.message}`, {
+        cause: e,
+      });
     }
   }
 
@@ -52,16 +56,24 @@ async function main() {
   );
 
   // 2) 数値IDのみ（改名に強い＝推奨）
-  await writeFile(path.join(DIST_DIR, "ids.txt"), active.map((a) => a.id).join("\n") + (active.length ? "\n" : ""));
+  await writeFile(
+    path.join(DIST_DIR, "ids.txt"),
+    active.map((a) => a.id).join("\n") + (active.length ? "\n" : ""),
+  );
 
   // 3) 現在のハンドルのみ
+  //    本人のものだと確認できているハンドルだけを出す。
+  //    改名後のハンドルは別人が取得していることがあり、
+  //    そのまま配布すると無関係の人がブロックされる。
+  const nameSafe = active.filter((a) => (a.status ?? "listed") === "listed");
   await writeFile(
     path.join(DIST_DIR, "usernames.txt"),
-    active.map((a) => a.username).join("\n") + (active.length ? "\n" : ""),
+    nameSafe.map((a) => a.username).join("\n") + (nameSafe.length ? "\n" : ""),
   );
 
   // 4) 表計算・各種ツール向け
-  const header = "id,username,categories,severity,status,evidence_count,added_at,updated_at";
+  const header =
+    "id,username,categories,severity,status,evidence_count,added_at,updated_at";
   const rows = active.map((a) =>
     [
       a.id,
@@ -76,13 +88,17 @@ async function main() {
       .map(csvEscape)
       .join(","),
   );
-  await writeFile(path.join(DIST_DIR, "blocklist.csv"), [header, ...rows].join("\n") + "\n");
+  await writeFile(
+    path.join(DIST_DIR, "blocklist.csv"),
+    [header, ...rows].join("\n") + "\n",
+  );
 
   // 5) 統計
   const byCategory = {};
   const bySeverity = {};
   for (const a of active) {
-    for (const c of a.categories ?? []) byCategory[c] = (byCategory[c] ?? 0) + 1;
+    for (const c of a.categories ?? [])
+      byCategory[c] = (byCategory[c] ?? 0) + 1;
     const s = a.severity ?? "medium";
     bySeverity[s] = (bySeverity[s] ?? 0) + 1;
   }
@@ -93,7 +109,11 @@ async function main() {
         generated_at: generatedAt,
         total: active.length,
         delisted: accounts.length - active.length,
-        evidence_total: active.reduce((n, a) => n + (a.evidence ?? []).length, 0),
+        evidence_total: active.reduce(
+          (n, a) => n + (a.evidence ?? []).length,
+          0,
+        ),
+        distributable_usernames: nameSafe.length,
         by_category: byCategory,
         by_severity: bySeverity,
       },
@@ -102,7 +122,9 @@ async function main() {
     )}\n`,
   );
 
-  console.log(`dist/ を生成しました: ${active.length} 件（掲載解除 ${accounts.length - active.length} 件を除外）`);
+  console.log(
+    `dist/ を生成しました: ${active.length} 件（掲載解除 ${accounts.length - active.length} 件を除外）`,
+  );
 }
 
 await main();

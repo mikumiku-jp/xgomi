@@ -25,7 +25,11 @@ const FEATURES = {
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchWithRetry(url, options = {}, { retries = 3, label = "" } = {}) {
+async function fetchWithRetry(
+  url,
+  options = {},
+  { retries = 3, label = "" } = {},
+) {
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1));
@@ -129,9 +133,10 @@ export async function tweetById(tweetId) {
 
 /** 証拠URLから {username, tweetId} を取り出す */
 export function parseTweetUrl(url) {
-  const m = /^https:\/\/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status\/([0-9]{1,25})(?:[/?#].*)?$/.exec(
-    url.trim(),
-  );
+  const m =
+    /^https:\/\/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status\/([0-9]{1,25})(?:[/?#].*)?$/.exec(
+      url.trim(),
+    );
   if (!m) return null;
   return { username: m[1], tweetId: m[2] };
 }
@@ -140,7 +145,10 @@ export function parseTweetUrl(url) {
 export function parseHandleInput(input) {
   const s = String(input ?? "").trim();
   if (!s) return null;
-  const urlMatch = /^https?:\/\/(?:x|twitter)\.com\/@?([A-Za-z0-9_]{1,15})(?:[/?#].*)?$/i.exec(s);
+  const urlMatch =
+    /^https?:\/\/(?:x|twitter)\.com\/@?([A-Za-z0-9_]{1,15})(?:[/?#].*)?$/i.exec(
+      s,
+    );
   if (urlMatch) return urlMatch[1];
   const handleMatch = /^@?([A-Za-z0-9_]{1,15})$/.exec(s);
   if (handleMatch) return handleMatch[1];

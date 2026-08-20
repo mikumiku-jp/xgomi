@@ -1,5 +1,5 @@
 name: アカウントを報告する
-description: スパム・低品質アカウントの掲載を提案します
+description: スパムや低品質アカウントの掲載を提案します
 # 内容を確認したあとで自動的に付け直すので、入力させない
 title: "[report] "
 labels: ["report"]
@@ -9,8 +9,9 @@ body:
       value: |
         送信前に [POLICY.md](../blob/main/POLICY.md) の掲載基準を確認してください。
 
-        **証拠ツイートは必須です。**
-        内容に問題があれば、このIssueに理由をコメントします。本文を直せば再確認されます。
+        証拠ツイートがなければ掲載できません。
+        内容に問題があれば、このIssueに理由をコメントします。
+        本文を直せば再確認されます。
 
         タイトルは自動で付くので、そのまま送信してかまいません。
 
@@ -18,7 +19,7 @@ body:
     id: account
     attributes:
       label: 対象アカウント
-      description: "`@handle` または プロフィールURL。数値IDを調べる必要はありません。"
+      description: "`@handle` かプロフィールURL。数値IDを調べる必要はありません。"
       placeholder: "@example  または  https://x.com/example"
     validations:
       required: true
@@ -28,13 +29,13 @@ body:
     attributes:
       label: カテゴリ
       description: |
-        該当するものをすべて選択（定義は [POLICY.md](../blob/main/POLICY.md) 参照）
+        該当するものをすべて選んでください（定義は [POLICY.md](../blob/main/POLICY.md)）。
 
-        - **AI関連** — `ai-hype` 驚き屋 / `ai-slop` AI生成の粗製濫造 / `undisclosed-ai` AI生成の秘匿 / `fake-demo` 捏造デモ
-        - **転載・なりすまし** — `plagiarism` 無断転載 / `content-farm` 無断転載まとめへの誘導 / `impersonation` なりすまし
-        - **収益誘導** — `affiliate-spam` アフィリエイト誘導 / `info-product` 情報商材 / `undisclosed-promo` ステマ / `scam` 詐欺
-        - **インプレ稼ぎ・攪乱** — `engagement-farming` インプレ稼ぎ / `rage-bait` 対立煽り / `bot-automation` bot・自動投稿 / `adult-spam` アダルト誘導
-        - **その他** — `misinformation` 誤情報
+        - **AI関連**：`ai-hype` 驚き屋、`ai-slop` AI生成の粗製濫造、`undisclosed-ai` AI生成の秘匿、`fake-demo` 捏造デモ
+        - **転載となりすまし**：`plagiarism` 無断転載、`content-farm` まとめサイトへの誘導、`impersonation` なりすまし
+        - **収益誘導**：`affiliate-spam` アフィリエイト誘導、`info-product` 情報商材、`undisclosed-promo` ステマ、`scam` 詐欺
+        - **インプレ稼ぎと攪乱**：`engagement-farming` インプレ稼ぎ、`rage-bait` 対立煽り、`bot-automation` 自動投稿、`adult-spam` アダルト誘導
+        - **その他**：`misinformation` 誤情報
       multiple: true
       options:
         - ai-hype
@@ -61,7 +62,8 @@ body:
     attributes:
       label: 証拠ツイートURL
       description: |
-        1行に1件。**対象アカウント本人の投稿** にかぎります。
+        1行に1件です。
+        対象アカウント本人の投稿にかぎります。
         1件でも受け付けますが、2件以上あるとレビューが早く済みます。
       placeholder: |
         https://x.com/example/status/1234567890123456789
@@ -76,7 +78,7 @@ body:
       label: 補足
       description: |
         何が問題なのかを客観的に説明してください。
-        **人格攻撃・個人情報は書かないでください。**
+        人格攻撃や個人情報は書かないでください。
       placeholder: 存在しない機能を「実装した」と主張し、デモ動画も生成物だった
 
   - type: checkboxes
@@ -86,7 +88,7 @@ body:
       options:
         - label: POLICY.md を読み、掲載基準に該当することを確認しました
           required: true
-        - label: 個人情報・人格攻撃を含めていません
+        - label: 個人情報や人格攻撃を含めていません
           required: true
         - label: 私怨や意見の不一致を理由とした報告ではありません
           required: true

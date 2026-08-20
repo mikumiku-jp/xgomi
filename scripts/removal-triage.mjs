@@ -126,7 +126,7 @@ async function main() {
   for (const ev of account.evidence ?? []) {
     const parsed = parseTweetUrl(ev?.url ?? "");
     if (!parsed) {
-      say(`- ⚠ \`${ev?.url}\` — URLとして解釈できません`);
+      say(`- ⚠ \`${ev?.url}\`：URLとして解釈できません`);
       continue;
     }
     const tweet = await tweetById(parsed.tweetId).catch(() => null);
@@ -137,14 +137,14 @@ async function main() {
     const archiveNote = hasArchive ? ` / [魚拓](${ev.archive_url})` : "";
 
     if (!tweet) {
-      say(`- 🗑 ${ev.url} — 削除済み${archiveNote}`);
+      say(`- 🗑 ${ev.url}：削除済み${archiveNote}`);
     } else if (tweet.authorId === account.id) {
       alive++;
-      say(`- ✅ ${ev.url} — 本人の投稿として健在${archiveNote}`);
+      say(`- ✅ ${ev.url}：本人の投稿として健在${archiveNote}`);
     } else {
       mismatched++;
       say(
-        `- ❌ ${ev.url} — **投稿者が別人** (@${tweet.authorUsername} / id=${tweet.authorId})${archiveNote}`,
+        `- ❌ ${ev.url}：**投稿者が別人** (@${tweet.authorUsername} / id=${tweet.authorId})${archiveNote}`,
       );
     }
   }

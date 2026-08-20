@@ -1,14 +1,14 @@
 // スキーマ検証（依存パッケージなし）。schema/account.schema.json と定義を揃えること。
 import { parseTweetUrl } from "./x.mjs";
 
-// POLICY.md の掲載カテゴリ表と同じ順・同じ面々に保つこと。
+// POLICY.md の掲載カテゴリ表とずれると selftest が落ちる。
 export const CATEGORIES = [
   // AI関連
   "ai-hype",
   "ai-slop",
   "undisclosed-ai",
   "fake-demo",
-  // 転載・なりすまし
+  // 転載となりすまし
   "plagiarism",
   "content-farm",
   "impersonation",
@@ -17,7 +17,7 @@ export const CATEGORIES = [
   "info-product",
   "undisclosed-promo",
   "scam",
-  // インプレ稼ぎ・攒乱
+  // インプレ稼ぎと攪乱
   "engagement-farming",
   "rage-bait",
   "bot-automation",
@@ -95,7 +95,7 @@ export function validateAccount(data, { filename } = {}) {
   // --- username ---
   if (typeof data.username !== "string" || !RE_USERNAME.test(data.username)) {
     err(
-      `username が不正です（@ は含めない・英数字と_のみ・15文字以内）: ${JSON.stringify(data.username)}`,
+      `username が不正です（@ は含めない、英数字と_のみ、15文字以内）: ${JSON.stringify(data.username)}`,
     );
   }
 

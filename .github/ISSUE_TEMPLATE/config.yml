@@ -3,6 +3,6 @@ contact_links:
   - name: 掲載ポリシーを読む
     url: https://github.com/mikumiku-jp/xgomi/blob/main/POLICY.md
     about: 何が掲載対象で、何が対象外なのか。報告の前に確認してください。
-  - name: 使い方・貢献方法
+  - name: 使い方と貢献方法
     url: https://github.com/mikumiku-jp/xgomi/blob/main/CONTRIBUTING.md
     about: 手動でPRを送る方法、データ構造の詳細はこちら。

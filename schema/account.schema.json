@@ -67,7 +67,7 @@
         "high"
       ],
       "default": "medium",
-      "description": "low=散発的 / medium=常習 / high=詐欺・実害あり"
+      "description": "low=散発的 / medium=常習 / high=詐欺や実害あり"
     },
     "evidence": {
       "type": "array",
@@ -106,7 +106,7 @@
     "note": {
       "type": "string",
       "maxLength": 1000,
-      "description": "補足。行為の説明だけを書きます。人格攻撃・個人情報は書けません。"
+      "description": "補足。行為の説明だけを書きます。人格攻撃や個人情報は書けません。"
     },
     "status": {
       "type": "string",

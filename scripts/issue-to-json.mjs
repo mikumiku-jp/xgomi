@@ -48,7 +48,7 @@ async function resolveTarget(target, tweetIds) {
     const u = await byHandle(target.value);
     if (!u) {
       fail(
-        `\`@${target.value}\` を見つけられませんでした。凍結・改名・削除、または綴り間違いの可能性があります。`,
+        `\`@${target.value}\` を見つけられませんでした。凍結、改名、削除、または綴り間違いの可能性があります。`,
       );
     }
     return u;
@@ -180,11 +180,11 @@ async function main() {
 
     if (!tweet) {
       rejected.push(
-        `- https://x.com/i/status/${tweetId} — 取得できません（削除済み・非公開・凍結）`,
+        `- https://x.com/i/status/${tweetId} 取得できません（削除済み、非公開、凍結のいずれか）`,
       );
     } else if (tweet.authorId !== user.id) {
       rejected.push(
-        `- https://x.com/${tweet.authorUsername}/status/${tweetId} — 投稿者が @${tweet.authorUsername} です`,
+        `- https://x.com/${tweet.authorUsername}/status/${tweetId}：投稿者が @${tweet.authorUsername} です`,
       );
     } else {
       verified.push(`https://x.com/${tweet.authorUsername}/status/${tweetId}`);

@@ -5,7 +5,7 @@ on:
         branches: [main]
         paths:
             - "accounts/**"
-            # 検証・生成に関わるものが変わったら、dist が同じでも一度回す
+            # 検証や生成に関わるものが変わったら、dist が同じでも一度回す
             - "scripts/**"
             - "schema/**"
     workflow_dispatch:

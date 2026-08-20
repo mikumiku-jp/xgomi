@@ -50,7 +50,7 @@ async function main() {
   const generatedAt = new Date().toISOString();
   const meta = {
     name: "xgomi",
-    description: "X上のスパム・低品質アカウントのコミュニティ管理リスト",
+    description: "X上のスパムや低品質アカウントのコミュニティ管理リスト",
     homepage: "https://github.com/mikumiku-jp/xgomi",
     license: "CC0-1.0",
     generated_at: generatedAt,
@@ -81,7 +81,7 @@ async function main() {
     nameSafe.map((a) => a.username).join("\n") + (nameSafe.length ? "\n" : ""),
   );
 
-  // 4) 表計算・各種ツール向け
+  // 4) 表計算や各種ツール向け
   const header =
     "id,username,categories,severity,status,evidence_count,added_at,updated_at";
   const rows = active.map((a) =>
